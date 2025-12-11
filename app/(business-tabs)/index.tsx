@@ -28,7 +28,7 @@ interface Job {
   latitude: number | null;
   longitude: number | null;
   distance?: number;
-  picture_url: string | null;
+  job_image_url: string | null;
 }
 
 interface Business {
@@ -280,8 +280,8 @@ export default function AvailableJobs() {
 
   const renderJob = ({ item }: { item: Job }) => (
     <View style={styles.jobCard}>
-      {item.picture_url && (
-        <Image source={{ uri: item.picture_url }} style={styles.jobImage} />
+      {item.job_image_url && (
+        <Image source={{ uri: item.job_image_url }} style={styles.jobImage} />
       )}
       <Text style={styles.jobTitle}>{item.title}</Text>
       <Text style={styles.jobDescription} numberOfLines={3}>
