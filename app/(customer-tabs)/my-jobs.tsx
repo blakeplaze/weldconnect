@@ -30,13 +30,11 @@ export default function MyJobs() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  useFocusEffect(
-    useCallback(() => {
-      loadJobs();
-    }, [])
-  );
-
-  const loadJobs = async () => {
+  const loadJobs = useCallback(async () => {
+    if (!session?.user.id) {
+      setLoading(false);
+      return;
+    }
     try {
       const { data: jobsData, error } = await supabase
         .from('jobs')
@@ -64,7 +62,13 @@ export default function MyJobs() {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [session]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadJobs();
+    }, [loadJobs])
+  );
 
   const onRefresh = () => {
     setRefreshing(true);
