@@ -18,6 +18,7 @@ interface UserProfile {
   phone: string | null;
   user_type: 'customer' | 'business';
   last_job_posted_at: string | null;
+  profile_picture_url: string | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);

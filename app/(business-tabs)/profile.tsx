@@ -9,13 +9,15 @@ import {
   ActivityIndicator,
   Alert,
   Platform,
+  Image,
 } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'expo-router';
-import { Building2, MapPin, Mail, Phone, LogOut, CheckCircle } from 'lucide-react-native';
+import { Building2, MapPin, Mail, Phone, LogOut, CheckCircle, Camera } from 'lucide-react-native';
 import { geocodeCity } from '@/lib/geocoding';
+import { pickImage, updateProfilePicture } from '@/lib/uploadImage';
 
 interface Business {
   id: string;
@@ -31,7 +33,7 @@ interface Business {
 }
 
 export default function BusinessProfile() {
-  const { userProfile, session, signOut, loading: authLoading } = useAuth();
+  const { userProfile, session, signOut, loading: authLoading, refreshProfile } = useAuth();
   const router = useRouter();
   const [business, setBusiness] = useState<Business | null>(null);
   const [loading, setLoading] = useState(true);
@@ -42,6 +44,7 @@ export default function BusinessProfile() {
   const [description, setDescription] = useState('');
   const [radiusMiles, setRadiusMiles] = useState(25);
   const [saving, setSaving] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   useEffect(() => {
     if (!authLoading && session) {
@@ -182,6 +185,26 @@ export default function BusinessProfile() {
     }
   };
 
+  const handleUploadProfilePicture = async () => {
+    if (!session?.user.id) return;
+
+    try {
+      setUploadingImage(true);
+      const image = await pickImage();
+
+      if (image) {
+        await updateProfilePicture(session.user.id, image.uri);
+        await refreshProfile();
+        Alert.alert('Success', 'Profile picture updated successfully');
+      }
+    } catch (error: any) {
+      console.error('Error uploading profile picture:', error);
+      Alert.alert('Error', error.message || 'Failed to upload profile picture');
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
   const handleSignOut = async () => {
     try {
       await signOut();
@@ -207,8 +230,28 @@ export default function BusinessProfile() {
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
-        <View style={styles.avatarContainer}>
-          <Building2 size={48} color="#fff" />
+        <View style={styles.avatarWrapper}>
+          <View style={styles.avatarContainer}>
+            {userProfile?.profile_picture_url ? (
+              <Image
+                source={{ uri: userProfile.profile_picture_url }}
+                style={styles.avatarImage}
+              />
+            ) : (
+              <Building2 size={48} color="#fff" />
+            )}
+          </View>
+          <TouchableOpacity
+            style={styles.cameraButton}
+            onPress={handleUploadProfilePicture}
+            disabled={uploadingImage}
+          >
+            {uploadingImage ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Camera size={20} color="#fff" />
+            )}
+          </TouchableOpacity>
         </View>
         <Text style={styles.name}>{userProfile?.full_name}</Text>
         <Text style={styles.userType}>Business Owner</Text>
@@ -446,6 +489,10 @@ const styles = StyleSheet.create({
     paddingTop: 32,
     alignItems: 'center',
   },
+  avatarWrapper: {
+    position: 'relative',
+    marginBottom: 16,
+  },
   avatarContainer: {
     width: 96,
     height: 96,
@@ -453,7 +500,24 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 16,
+    overflow: 'hidden',
+  },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
+  },
+  cameraButton: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#007AFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 3,
+    borderColor: '#fff',
   },
   name: {
     fontSize: 24,
