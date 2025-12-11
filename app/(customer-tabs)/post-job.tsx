@@ -9,12 +9,15 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'expo-router';
 import JobPostSuccessModal from '@/components/JobPostSuccessModal';
 import { geocodeCity } from '@/lib/geocoding';
+import { pickImage, uploadJobImage } from '@/lib/uploadImage';
+import { Camera, X } from 'lucide-react-native';
 
 const COOLDOWN_MINUTES = 2;
 const COOLDOWN_MS = COOLDOWN_MINUTES * 60 * 1000;
@@ -33,6 +36,8 @@ export default function PostJob() {
   const [error, setError] = useState('');
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [cooldownRemaining, setCooldownRemaining] = useState(0);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   useEffect(() => {
     checkCooldown();
@@ -64,6 +69,24 @@ export default function PostJob() {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const handlePickImage = async () => {
+    try {
+      setUploadingImage(true);
+      const image = await pickImage();
+      if (image) {
+        setSelectedImage(image.uri);
+      }
+    } catch (error: any) {
+      setError(error.message || 'Failed to pick image');
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setSelectedImage(null);
+  };
+
   const handleSubmit = async () => {
     setError('');
 
@@ -83,6 +106,11 @@ export default function PostJob() {
     try {
       const coords = await geocodeCity(city.trim().toLowerCase(), state.trim().toUpperCase());
 
+      let jobImageUrl: string | null = null;
+      if (selectedImage && session?.user.id) {
+        jobImageUrl = await uploadJobImage(session.user.id, selectedImage);
+      }
+
       const { error: insertError } = await supabase.from('jobs').insert({
         customer_id: session?.user.id,
         title,
@@ -94,6 +122,7 @@ export default function PostJob() {
         contact_phone: contactPhone,
         latitude: coords?.latitude || null,
         longitude: coords?.longitude || null,
+        job_image_url: jobImageUrl,
         status: 'open',
       });
 
@@ -115,6 +144,7 @@ export default function PostJob() {
       setAddress('');
       setContactName('');
       setContactPhone('');
+      setSelectedImage(null);
       setShowSuccessModal(true);
     } catch (err: any) {
       setError(err.message || 'Failed to post job');
@@ -183,6 +213,37 @@ export default function PostJob() {
               textAlignVertical="top"
               editable={!loading}
             />
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Job Photo (Optional)</Text>
+            {selectedImage ? (
+              <View style={styles.imagePreviewContainer}>
+                <Image source={{ uri: selectedImage }} style={styles.imagePreview} />
+                <TouchableOpacity
+                  style={styles.removeImageButton}
+                  onPress={handleRemoveImage}
+                  disabled={loading}
+                >
+                  <X size={20} color="#fff" />
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <TouchableOpacity
+                style={styles.imagePickerButton}
+                onPress={handlePickImage}
+                disabled={loading || uploadingImage}
+              >
+                {uploadingImage ? (
+                  <ActivityIndicator size="small" color="#007AFF" />
+                ) : (
+                  <>
+                    <Camera size={32} color="#007AFF" />
+                    <Text style={styles.imagePickerText}>Add Photo</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            )}
           </View>
 
           <View style={styles.row}>
@@ -362,5 +423,42 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     textAlign: 'center',
+  },
+  imagePickerButton: {
+    backgroundColor: '#fff',
+    borderWidth: 2,
+    borderColor: '#007AFF',
+    borderStyle: 'dashed',
+    borderRadius: 12,
+    padding: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  imagePickerText: {
+    color: '#007AFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  imagePreviewContainer: {
+    position: 'relative',
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  imagePreview: {
+    width: '100%',
+    height: 200,
+    borderRadius: 12,
+  },
+  removeImageButton: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: '#FF3B30',
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

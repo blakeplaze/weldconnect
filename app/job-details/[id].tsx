@@ -6,6 +6,7 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
@@ -25,6 +26,7 @@ interface Job {
   status: string;
   winning_bid_id: string | null;
   created_at: string;
+  job_image_url: string | null;
 }
 
 interface Bid {
@@ -179,6 +181,12 @@ export default function JobDetails() {
           </Text>
         </View>
       </View>
+
+      {job.job_image_url && (
+        <View style={styles.imageCard}>
+          <Image source={{ uri: job.job_image_url }} style={styles.jobImage} />
+        </View>
+      )}
 
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>Description</Text>
@@ -349,6 +357,16 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     padding: 16,
     marginBottom: 8,
+  },
+  imageCard: {
+    backgroundColor: '#fff',
+    marginBottom: 8,
+    overflow: 'hidden',
+  },
+  jobImage: {
+    width: '100%',
+    height: 250,
+    resizeMode: 'cover',
   },
   sectionTitle: {
     fontSize: 18,

@@ -74,3 +74,42 @@ export async function updateProfilePicture(
 
   if (error) throw error;
 }
+
+export async function uploadJobImage(
+  userId: string,
+  imageUri: string
+): Promise<string> {
+  try {
+    const fileExt = imageUri.split('.').pop()?.toLowerCase() || 'jpg';
+    const timestamp = Date.now();
+    const fileName = `${userId}/job-${timestamp}.${fileExt}`;
+
+    let fileData: Blob | File;
+
+    if (Platform.OS === 'web') {
+      const response = await fetch(imageUri);
+      fileData = await response.blob();
+    } else {
+      const response = await fetch(imageUri);
+      fileData = await response.blob();
+    }
+
+    const { error: uploadError } = await supabase.storage
+      .from('job-images')
+      .upload(fileName, fileData, {
+        contentType: `image/${fileExt}`,
+        upsert: false,
+      });
+
+    if (uploadError) throw uploadError;
+
+    const { data: urlData } = supabase.storage
+      .from('job-images')
+      .getPublicUrl(fileName);
+
+    return urlData.publicUrl;
+  } catch (error) {
+    console.error('Error uploading job image:', error);
+    throw error;
+  }
+}
