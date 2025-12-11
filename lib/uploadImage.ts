@@ -80,33 +80,54 @@ export async function uploadJobImage(
   imageUri: string
 ): Promise<string> {
   try {
-    const fileExt = imageUri.split('.').pop()?.toLowerCase() || 'jpg';
-    const timestamp = Date.now();
-    const fileName = `${userId}/job-${timestamp}.${fileExt}`;
+    console.log('uploadJobImage called with URI:', imageUri);
 
-    let fileData: Blob | File;
-
-    if (Platform.OS === 'web') {
-      const response = await fetch(imageUri);
-      fileData = await response.blob();
-    } else {
-      const response = await fetch(imageUri);
-      fileData = await response.blob();
+    // Extract file extension from the URI, defaulting to jpg
+    let fileExt = 'jpg';
+    if (imageUri.includes('.')) {
+      const parts = imageUri.split('.');
+      const lastPart = parts[parts.length - 1].split('?')[0]; // Remove query params if any
+      fileExt = lastPart.toLowerCase();
     }
 
-    const { error: uploadError } = await supabase.storage
+    const timestamp = Date.now();
+    const fileName = `${userId}/job-${timestamp}.${fileExt}`;
+    console.log('Target filename:', fileName);
+
+    let fileData: Blob;
+
+    try {
+      const response = await fetch(imageUri);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`);
+      }
+      fileData = await response.blob();
+      console.log('Blob created, size:', fileData.size, 'type:', fileData.type);
+    } catch (fetchError: any) {
+      console.error('Fetch error:', fetchError);
+      throw new Error(`Failed to load image: ${fetchError.message}`);
+    }
+
+    console.log('Uploading to storage...');
+    const { data: uploadData, error: uploadError } = await supabase.storage
       .from('job-images')
       .upload(fileName, fileData, {
-        contentType: `image/${fileExt}`,
+        contentType: fileData.type || `image/${fileExt}`,
         upsert: false,
       });
 
-    if (uploadError) throw uploadError;
+    if (uploadError) {
+      console.error('Upload error:', uploadError);
+      throw uploadError;
+    }
+
+    console.log('Upload successful:', uploadData);
 
     const { data: urlData } = supabase.storage
       .from('job-images')
       .getPublicUrl(fileName);
 
+    console.log('Public URL:', urlData.publicUrl);
     return urlData.publicUrl;
   } catch (error) {
     console.error('Error uploading job image:', error);
