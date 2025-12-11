@@ -207,6 +207,23 @@ export default function AvailableJobs() {
 
     setSubmittingBid(true);
     try {
+      // Check if business already has a bid for this job
+      const { data: existingBid, error: checkError } = await supabase
+        .from('bids')
+        .select('id')
+        .eq('job_id', selectedJob.id)
+        .eq('business_id', business.id)
+        .maybeSingle();
+
+      if (checkError) throw checkError;
+
+      if (existingBid) {
+        alert('You have already submitted a bid for this job. You cannot submit another bid.');
+        setSubmittingBid(false);
+        setShowBidModal(false);
+        return;
+      }
+
       const { data, error } = await supabase.from('bids').insert({
         job_id: selectedJob.id,
         business_id: business.id,
