@@ -55,6 +55,7 @@ export default function AvailableJobs() {
   const [bidNotes, setBidNotes] = useState('');
   const [submittingBid, setSubmittingBid] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [bidError, setBidError] = useState('');
 
   useEffect(() => {
     loadBusiness();
@@ -184,6 +185,7 @@ export default function AvailableJobs() {
     setSelectedJob(job);
     setBidAmount('');
     setBidNotes('');
+    setBidError('');
     setShowBidModal(true);
   };
 
@@ -218,9 +220,8 @@ export default function AvailableJobs() {
       if (checkError) throw checkError;
 
       if (existingBid) {
-        alert('You have already submitted a bid for this job. You cannot submit another bid.');
+        setBidError('You have already submitted a bid for this job. You cannot submit another bid.');
         setSubmittingBid(false);
-        setShowBidModal(false);
         return;
       }
 
@@ -365,6 +366,12 @@ export default function AvailableJobs() {
             </View>
 
             <Text style={styles.jobTitleInModal}>{selectedJob?.title}</Text>
+
+            {bidError ? (
+              <View style={styles.errorContainer}>
+                <Text style={styles.errorText}>{bidError}</Text>
+              </View>
+            ) : null}
 
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Bid Amount ($) *</Text>
@@ -544,6 +551,19 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#666',
     marginBottom: 20,
+  },
+  errorContainer: {
+    backgroundColor: '#fee',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+    borderLeftWidth: 4,
+    borderLeftColor: '#dc3545',
+  },
+  errorText: {
+    color: '#dc3545',
+    fontSize: 14,
+    fontWeight: '600',
   },
   inputGroup: {
     gap: 8,
