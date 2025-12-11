@@ -82,12 +82,13 @@ export async function uploadJobImage(
   try {
     console.log('uploadJobImage called with URI:', imageUri);
 
-    // Extract file extension from the URI, defaulting to jpg
+    // For blob URLs (web), just use jpg. For file URIs, extract the extension.
     let fileExt = 'jpg';
-    if (imageUri.includes('.')) {
-      const parts = imageUri.split('.');
-      const lastPart = parts[parts.length - 1].split('?')[0]; // Remove query params if any
-      fileExt = lastPart.toLowerCase();
+    if (!imageUri.startsWith('blob:') && imageUri.includes('.')) {
+      const parts = imageUri.split('/').pop()?.split('.');
+      if (parts && parts.length > 1) {
+        fileExt = parts[parts.length - 1].split('?')[0].toLowerCase();
+      }
     }
 
     const timestamp = Date.now();
