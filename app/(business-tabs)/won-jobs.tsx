@@ -37,10 +37,14 @@ export default function WonJobs() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!authLoading && session) {
+    if (authLoading) {
+      return;
+    }
+
+    if (session) {
       console.log('Won Jobs: Loading jobs for user', session.user.id);
       loadWonJobs(session.user.id);
-    } else if (!authLoading && !session) {
+    } else {
       console.log('Won Jobs: No session, stopping load');
       setLoading(false);
     }
@@ -59,11 +63,14 @@ export default function WonJobs() {
 
       if (businessError) {
         console.error('Won Jobs: Business query error:', businessError);
-        throw businessError;
+        setLoading(false);
+        setRefreshing(false);
+        return;
       }
       if (!businessData) {
         console.log('Won Jobs: No business found for user');
         setLoading(false);
+        setRefreshing(false);
         return;
       }
 
@@ -91,7 +98,12 @@ export default function WonJobs() {
         )
         .eq('business_id', businessData.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Won Jobs: Bids query error:', error);
+        setLoading(false);
+        setRefreshing(false);
+        return;
+      }
 
       const won = (data || []).filter(
         (bid: any) => bid.job.winning_bid_id === bid.id

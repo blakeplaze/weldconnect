@@ -35,10 +35,14 @@ export default function MyBids() {
   const [businessId, setBusinessId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!authLoading && session) {
+    if (authLoading) {
+      return;
+    }
+
+    if (session) {
       console.log('My Bids: Loading bids for user', session.user.id);
       loadBusinessAndBids(session.user.id);
-    } else if (!authLoading && !session) {
+    } else {
       console.log('My Bids: No session, stopping load');
       setLoading(false);
     }
@@ -65,7 +69,8 @@ export default function MyBids() {
 
       if (businessError) {
         console.error('My Bids: Business query error:', businessError);
-        throw businessError;
+        setLoading(false);
+        return;
       }
       if (!businessData) {
         console.log('My Bids: No business found for user');
@@ -75,7 +80,7 @@ export default function MyBids() {
 
       console.log('My Bids: Found business, loading bids');
       setBusinessId(businessData.id);
-      loadBids(businessData.id);
+      await loadBids(businessData.id);
     } catch (err) {
       console.error('Error loading business:', err);
       setLoading(false);

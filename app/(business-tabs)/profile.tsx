@@ -47,10 +47,14 @@ export default function BusinessProfile() {
   const [uploadingImage, setUploadingImage] = useState(false);
 
   useEffect(() => {
-    if (!authLoading && session) {
+    if (authLoading) {
+      return;
+    }
+
+    if (session) {
       console.log('Profile: Loading business for user', session.user.id);
       loadBusiness(session.user.id);
-    } else if (!authLoading && !session) {
+    } else {
       console.log('Profile: No session, stopping load');
       setLoading(false);
     }
@@ -67,7 +71,11 @@ export default function BusinessProfile() {
 
       console.log('Profile: Query result:', { data, error });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Profile: Query error:', error);
+        setLoading(false);
+        return;
+      }
 
       if (data) {
         setBusiness(data);
