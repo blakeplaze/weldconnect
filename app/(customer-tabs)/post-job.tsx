@@ -104,13 +104,25 @@ export default function PostJob() {
 
     setLoading(true);
     try {
+      console.log('Starting job post...');
       const coords = await geocodeCity(city.trim().toLowerCase(), state.trim().toUpperCase());
+      console.log('Geocoding complete:', coords);
 
       let jobImageUrl: string | null = null;
       if (selectedImage && session?.user.id) {
-        jobImageUrl = await uploadJobImage(session.user.id, selectedImage);
+        console.log('Uploading image...');
+        try {
+          jobImageUrl = await uploadJobImage(session.user.id, selectedImage);
+          console.log('Image uploaded:', jobImageUrl);
+        } catch (imageError: any) {
+          console.error('Image upload failed:', imageError);
+          setError(`Failed to upload image: ${imageError.message}`);
+          setLoading(false);
+          return;
+        }
       }
 
+      console.log('Inserting job...');
       const { error: insertError } = await supabase.from('jobs').insert({
         customer_id: session?.user.id,
         title,
@@ -127,6 +139,7 @@ export default function PostJob() {
       });
 
       if (insertError) throw insertError;
+      console.log('Job inserted successfully');
 
       const { error: updateError } = await supabase
         .from('profiles')
@@ -147,6 +160,7 @@ export default function PostJob() {
       setSelectedImage(null);
       setShowSuccessModal(true);
     } catch (err: any) {
+      console.error('Error posting job:', err);
       setError(err.message || 'Failed to post job');
     } finally {
       setLoading(false);
