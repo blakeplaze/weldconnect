@@ -10,6 +10,7 @@ import {
   Modal,
   TextInput,
   Alert,
+  Image,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '@/contexts/AuthContext';
@@ -27,6 +28,7 @@ interface Job {
   latitude: number | null;
   longitude: number | null;
   distance?: number;
+  picture_url: string | null;
 }
 
 interface Business {
@@ -278,6 +280,9 @@ export default function AvailableJobs() {
 
   const renderJob = ({ item }: { item: Job }) => (
     <View style={styles.jobCard}>
+      {item.picture_url && (
+        <Image source={{ uri: item.picture_url }} style={styles.jobImage} />
+      )}
       <Text style={styles.jobTitle}>{item.title}</Text>
       <Text style={styles.jobDescription} numberOfLines={3}>
         {item.description}
@@ -428,6 +433,12 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 12,
     gap: 12,
+  },
+  jobImage: {
+    width: '100%',
+    height: 200,
+    borderRadius: 8,
+    marginBottom: 8,
   },
   jobTitle: {
     fontSize: 18,
