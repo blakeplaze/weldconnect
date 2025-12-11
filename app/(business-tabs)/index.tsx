@@ -29,6 +29,7 @@ interface Job {
   longitude: number | null;
   distance?: number;
   job_image_url: string | null;
+  myBidAmount?: number;
 }
 
 interface Business {
@@ -66,6 +67,32 @@ export default function AvailableJobs() {
       loadBusiness();
     }, [])
   );
+
+  const loadBidsForJobs = async (jobs: Job[], businessId: string): Promise<Job[]> => {
+    try {
+      const jobIds = jobs.map((job) => job.id);
+      const { data: bids, error } = await supabase
+        .from('bids')
+        .select('job_id, amount')
+        .eq('business_id', businessId)
+        .in('job_id', jobIds);
+
+      if (error) throw error;
+
+      const bidMap = new Map<string, number>();
+      bids?.forEach((bid) => {
+        bidMap.set(bid.job_id, bid.amount);
+      });
+
+      return jobs.map((job) => ({
+        ...job,
+        myBidAmount: bidMap.get(job.id),
+      }));
+    } catch (err) {
+      console.error('Error loading bids:', err);
+      return jobs;
+    }
+  };
 
   const loadBusiness = async () => {
     try {
@@ -158,14 +185,17 @@ export default function AvailableJobs() {
         console.log('Available Jobs: Filtered jobs (within radius):', filteredJobs.length);
 
         filteredJobs.sort((a, b) => (a.distance || 0) - (b.distance || 0));
-        setJobs(filteredJobs);
+
+        const jobsWithBids = await loadBidsForJobs(filteredJobs, businessData.id);
+        setJobs(jobsWithBids);
       } else {
         console.log('Available Jobs: No business coordinates, using city fallback');
         const fallbackJobs = (data || []).filter(job =>
           job.city.toLowerCase() === businessData.city.toLowerCase()
         );
         console.log('Available Jobs: Fallback jobs:', fallbackJobs.length);
-        setJobs(fallbackJobs);
+        const jobsWithBids = await loadBidsForJobs(fallbackJobs, businessData.id);
+        setJobs(jobsWithBids);
       }
     } catch (err) {
       console.error('Error loading jobs:', err);
@@ -320,11 +350,19 @@ export default function AvailableJobs() {
           </View>
         </View>
         <TouchableOpacity
-          style={styles.bidButton}
+          style={[
+            styles.bidButton,
+            item.myBidAmount !== undefined && styles.bidButtonDisabled,
+          ]}
           onPress={() => openBidModal(item)}
+          disabled={item.myBidAmount !== undefined}
         >
           <DollarSign size={16} color="#fff" />
-          <Text style={styles.bidButtonText}>Place Bid</Text>
+          <Text style={styles.bidButtonText}>
+            {item.myBidAmount !== undefined
+              ? `$${item.myBidAmount.toFixed(2)}`
+              : 'Place Bid'}
+          </Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -506,6 +544,10 @@ const styles = StyleSheet.create({
   bidButtonText: {
     color: '#fff',
     fontWeight: '600',
+  },
+  bidButtonDisabled: {
+    backgroundColor: '#999',
+    opacity: 0.7,
   },
   emptyContainer: {
     alignItems: 'center',
