@@ -14,9 +14,7 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Send, Image as ImageIcon, ArrowLeft } from 'lucide-react-native';
-import * as ImagePicker from 'expo-image-picker';
-import { uploadImage } from '@/lib/uploadImage';
+import { Send, ArrowLeft } from 'lucide-react-native';
 
 interface Message {
   id: string;
@@ -249,73 +247,6 @@ export default function ChatScreen() {
     }
   };
 
-  const pickImage = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') {
-      alert('Permission to access photos is required');
-      return;
-    }
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsEditing: true,
-      quality: 0.8,
-    });
-
-    if (!result.canceled && result.assets[0]) {
-      await sendImageMessage(result.assets[0].uri);
-    }
-  };
-
-  const sendImageMessage = async (imageUri: string) => {
-    if (!id || !userProfile?.id) return;
-
-    const tempId = `temp-${Date.now()}`;
-
-    try {
-      setSending(true);
-
-      const imageUrl = await uploadImage(imageUri, 'message-images');
-
-      const tempMessage: Message = {
-        id: tempId,
-        conversation_id: id,
-        sender_id: userProfile.id,
-        message_text: 'Sent an image',
-        image_url: imageUrl,
-        read_at: null,
-        created_at: new Date().toISOString(),
-        sender_name: userProfile.full_name,
-      };
-
-      setMessages((prev) => [...prev, tempMessage]);
-
-      const { data, error } = await supabase
-        .from('messages')
-        .insert({
-          conversation_id: id,
-          sender_id: userProfile.id,
-          message_text: 'Sent an image',
-          image_url: imageUrl,
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      if (data) {
-        setMessages((prev) =>
-          prev.map((msg) => (msg.id === tempId ? { ...tempMessage, id: data.id } : msg))
-        );
-      }
-    } catch (error) {
-      console.error('Error sending image:', error);
-      setMessages((prev) => prev.filter((msg) => msg.id !== tempId));
-    } finally {
-      setSending(false);
-    }
-  };
-
   const formatMessageTime = (timestamp: string) => {
     const date = new Date(timestamp);
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -422,13 +353,6 @@ export default function ChatScreen() {
       />
 
       <View style={styles.inputContainer}>
-        <TouchableOpacity
-          style={styles.imageButton}
-          onPress={pickImage}
-          disabled={sending}
-        >
-          <ImageIcon size={24} color="#007AFF" />
-        </TouchableOpacity>
         <TextInput
           style={styles.input}
           value={newMessage}
@@ -543,10 +467,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF',
     borderTopWidth: 1,
     borderTopColor: '#E5E5E5',
-  },
-  imageButton: {
-    padding: 8,
-    marginRight: 8,
   },
   input: {
     flex: 1,
