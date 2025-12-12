@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -19,8 +19,18 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { signIn } = useAuth();
+  const { signIn, session, userProfile } = useAuth();
   const router = useRouter();
+
+  useEffect(() => {
+    if (session && userProfile) {
+      if (userProfile.user_type === 'business') {
+        router.replace('/(business-tabs)');
+      } else {
+        router.replace('/(customer-tabs)');
+      }
+    }
+  }, [session, userProfile]);
 
   const handleLogin = async () => {
     setError('');
@@ -32,7 +42,6 @@ export default function Login() {
     setLoading(true);
     try {
       await signIn(email, password);
-      router.replace('/');
     } catch (err: any) {
       setError(err.message || 'Failed to sign in');
       setLoading(false);

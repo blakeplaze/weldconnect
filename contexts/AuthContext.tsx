@@ -29,6 +29,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -45,40 +46,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } else {
           setLoading(false);
         }
+        setInitialized(true);
       } catch (error) {
         console.error('Error initializing auth:', error);
         if (mounted) {
           setLoading(false);
+          setInitialized(true);
         }
       }
     };
 
     timeoutId = setTimeout(() => {
-      if (mounted && loading) {
+      if (mounted && loading && !initialized) {
         console.error('Auth initialization timeout - forcing loading to false');
         setLoading(false);
+        setInitialized(true);
       }
     }, 10000);
 
     initAuth();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!mounted) return;
+      if (!mounted || !initialized) return;
 
       console.log('Auth state changed:', _event, 'session:', !!session);
 
-      if (!session) {
+      if (_event === 'SIGNED_OUT' || _event === 'USER_DELETED') {
         setSession(null);
         setUserProfile(null);
         setLoading(false);
         return;
       }
 
-      setSession(session);
-
-      (async () => {
-        await loadUserProfile(session.user.id);
-      })();
+      if (_event === 'SIGNED_IN' || _event === 'TOKEN_REFRESHED') {
+        setSession(session);
+        (async () => {
+          await loadUserProfile(session.user.id);
+        })();
+      }
     });
 
     return () => {
