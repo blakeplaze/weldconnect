@@ -250,22 +250,24 @@ export default function WonJobs() {
             <Text style={styles.messageButtonText}>Message Customer</Text>
           </TouchableOpacity>
 
-          {isAwarded && (
+          {(isAwarded || isCompleted) && (
             <TouchableOpacity
               style={[
                 styles.actionButton,
                 styles.completeButton,
-                completingJobId === item.job_id && styles.completeButtonDisabled
+                (completingJobId === item.job_id || isCompleted) && styles.completeButtonDisabled
               ]}
               onPress={() => handleMarkComplete(item)}
-              disabled={completingJobId === item.job_id}
+              disabled={completingJobId === item.job_id || isCompleted}
             >
               {completingJobId === item.job_id ? (
                 <ActivityIndicator size="small" color="#fff" />
               ) : (
                 <>
                   <CheckCircle size={18} color="#fff" />
-                  <Text style={styles.completeButtonText}>Mark Complete</Text>
+                  <Text style={styles.completeButtonText}>
+                    {isCompleted ? 'Completed' : 'Mark Complete'}
+                  </Text>
                 </>
               )}
             </TouchableOpacity>
