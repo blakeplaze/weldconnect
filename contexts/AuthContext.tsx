@@ -66,15 +66,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!mounted) return;
 
       console.log('Auth state changed:', _event, 'session:', !!session);
+
+      if (!session) {
+        setSession(null);
+        setUserProfile(null);
+        setLoading(false);
+        return;
+      }
+
       setSession(session);
 
       (async () => {
-        if (session) {
-          await loadUserProfile(session.user.id);
-        } else {
-          setUserProfile(null);
-          setLoading(false);
-        }
+        await loadUserProfile(session.user.id);
       })();
     });
 
@@ -170,11 +173,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signOut = async () => {
     console.log('SignOut: Starting sign out process');
     try {
-      console.log('SignOut: Clearing local state');
-      setSession(null);
-      setUserProfile(null);
-      setLoading(false);
-
       console.log('SignOut: Calling supabase.auth.signOut()');
       const { error } = await supabase.auth.signOut();
 
@@ -186,13 +184,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log('SignOut: Auth session missing, but thats ok');
       }
 
-      console.log('SignOut: Successfully completed, navigating to login');
-      router.replace('/auth/login');
+      console.log('SignOut: Successfully completed');
     } catch (err: any) {
       console.error('SignOut: Exception caught:', err);
       if (err.message === 'Auth session missing!' || err.name === 'AuthSessionMissingError') {
-        console.log('SignOut: Session already cleared, proceeding with navigation');
-        router.replace('/auth/login');
+        console.log('SignOut: Session already cleared');
         return;
       }
       throw err;

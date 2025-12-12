@@ -356,7 +356,8 @@ export default function BusinessProfile() {
     try {
       console.log('Profile: Calling signOut function');
       await signOut();
-      console.log('Profile: SignOut completed successfully');
+      console.log('Profile: SignOut completed successfully, navigating to login');
+      router.replace('/auth/login');
     } catch (error: any) {
       console.error('Profile: Error signing out:', error);
       Alert.alert('Error', error?.message || 'Failed to sign out. Please try again.');

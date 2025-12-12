@@ -219,18 +219,16 @@ export default function Help() {
     setIsDeleting(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke('delete-account', {
+      const { error } = await supabase.functions.invoke('delete-account', {
         method: 'POST',
       });
 
       if (error) throw error;
 
-      setShowDeleteModal(false);
     } catch (error) {
       console.error('Error deleting account:', error);
       setErrorMessage('Failed to delete account. Please try again or contact support.');
       setShowDeleteModal(false);
-    } finally {
       setIsDeleting(false);
     }
   };
