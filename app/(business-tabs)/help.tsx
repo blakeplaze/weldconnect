@@ -254,7 +254,7 @@ export default function Help() {
         <View style={styles.section}>
           <View style={styles.contactHeader}>
             <Mail size={24} color="#2563eb" />
-            <Text style={styles.sectionTitle}>Contact Us</Text>
+            <Text style={styles.sectionTitle}>Support</Text>
           </View>
           <Text style={styles.contactSubtitle}>
             Can't find what you're looking for? Send us a message and we'll get back to you as soon as possible.
