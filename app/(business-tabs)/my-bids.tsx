@@ -104,7 +104,13 @@ export default function MyBids() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setBids(data || []);
+
+      const normalizedBids = (data || []).map((bid: any) => ({
+        ...bid,
+        job: Array.isArray(bid.job) ? bid.job[0] : bid.job,
+      }));
+
+      setBids(normalizedBids);
     } catch (err) {
       console.error('Error loading bids:', err);
     } finally {

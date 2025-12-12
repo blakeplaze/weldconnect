@@ -7,12 +7,14 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Image,
+  Alert,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
-import { MapPin, DollarSign, Clock, CheckCircle, Award } from 'lucide-react-native';
+import { MapPin, DollarSign, Clock, CheckCircle, Award, MessageCircle } from 'lucide-react-native';
 import JobAwardConfirmModal from '@/components/JobAwardConfirmModal';
 import JobAwardSuccessModal from '@/components/JobAwardSuccessModal';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Job {
   id: string;
@@ -34,14 +36,17 @@ interface Bid {
   amount: number;
   notes: string | null;
   created_at: string;
+  business_id: string;
   business: {
     business_name: string;
+    owner_id: string;
   };
 }
 
 export default function JobDetails() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
+  const { userProfile } = useAuth();
   const [job, setJob] = useState<Job | null>(null);
   const [bids, setBids] = useState<Bid[]>([]);
   const [loading, setLoading] = useState(true);
@@ -73,14 +78,21 @@ export default function JobDetails() {
           amount,
           notes,
           created_at,
-          business:businesses(business_name)
+          business_id,
+          business:businesses(business_name, owner_id)
         `
         )
         .eq('job_id', id)
         .order('amount', { ascending: true });
 
       if (bidsError) throw bidsError;
-      setBids(bidsData || []);
+
+      const normalizedBids = (bidsData || []).map((bid: any) => ({
+        ...bid,
+        business: Array.isArray(bid.business) ? bid.business[0] : bid.business,
+      }));
+
+      setBids(normalizedBids);
     } catch (err) {
       console.error('Error loading job details:', err);
       Alert.alert('Error', 'Failed to load job details');
@@ -132,6 +144,40 @@ export default function JobDetails() {
       setShowConfirmModal(false);
     } finally {
       setAwarding(false);
+    }
+  };
+
+  const handleMessageBusiness = async (bid: Bid) => {
+    if (!userProfile?.id || !job?.id) return;
+
+    try {
+      const { data: existingConversation, error: findError } = await supabase
+        .from('conversations')
+        .select('id')
+        .eq('job_id', job.id)
+        .eq('business_id', bid.business.owner_id)
+        .maybeSingle();
+
+      if (findError) throw findError;
+
+      if (existingConversation) {
+        router.push(`/chat/${existingConversation.id}`);
+      } else {
+        const { data: newConversation, error: createError } = await supabase
+          .from('conversations')
+          .insert({
+            job_id: job.id,
+            customer_id: userProfile.id,
+            business_id: bid.business.owner_id,
+          })
+          .select('id')
+          .single();
+
+        if (createError) throw createError;
+        router.push(`/chat/${newConversation.id}`);
+      }
+    } catch (error) {
+      console.error('Error opening conversation:', error);
     }
   };
 
@@ -226,6 +272,13 @@ export default function JobDetails() {
                 {bid.notes && (
                   <Text style={styles.bidNotes}>{bid.notes}</Text>
                 )}
+                <TouchableOpacity
+                  style={styles.messageButton}
+                  onPress={() => handleMessageBusiness(bid)}
+                >
+                  <MessageCircle size={16} color="#007AFF" />
+                  <Text style={styles.messageButtonText}>Message</Text>
+                </TouchableOpacity>
                 {job.winning_bid_id === bid.id && (
                   <View style={styles.winnerBadge}>
                     <CheckCircle size={14} color="#34C759" />
@@ -445,6 +498,22 @@ const styles = StyleSheet.create({
     color: '#666',
     fontStyle: 'italic',
     marginTop: 4,
+  },
+  messageButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: '#F0F8FF',
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+  },
+  messageButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#007AFF',
   },
   winnerBadge: {
     flexDirection: 'row',

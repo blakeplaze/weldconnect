@@ -10,7 +10,8 @@ import {
 } from 'react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
-import { MapPin, Phone, User, DollarSign } from 'lucide-react-native';
+import { MapPin, Phone, User, DollarSign, MessageCircle } from 'lucide-react-native';
+import { useRouter } from 'expo-router';
 
 interface WonJob {
   id: string;
@@ -26,11 +27,13 @@ interface WonJob {
     contact_name: string | null;
     contact_phone: string | null;
     status: string;
+    customer_id: string;
   };
 }
 
 export default function WonJobs() {
-  const { session, loading: authLoading } = useAuth();
+  const { session, loading: authLoading, userProfile } = useAuth();
+  const router = useRouter();
   const [wonJobs, setWonJobs] = useState<WonJob[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -92,7 +95,8 @@ export default function WonJobs() {
             contact_name,
             contact_phone,
             status,
-            winning_bid_id
+            winning_bid_id,
+            customer_id
           )
         `
         )
@@ -105,7 +109,12 @@ export default function WonJobs() {
         return;
       }
 
-      const won = (data || []).filter(
+      const normalizedData = (data || []).map((bid: any) => ({
+        ...bid,
+        job: Array.isArray(bid.job) ? bid.job[0] : bid.job,
+      }));
+
+      const won = normalizedData.filter(
         (bid: any) => bid.job.winning_bid_id === bid.id
       );
       setWonJobs(won);
@@ -126,6 +135,40 @@ export default function WonJobs() {
 
   const toggleExpand = (id: string) => {
     setExpandedId(expandedId === id ? null : id);
+  };
+
+  const handleMessageCustomer = async (job: WonJob) => {
+    if (!userProfile?.id) return;
+
+    try {
+      const { data: existingConversation, error: findError } = await supabase
+        .from('conversations')
+        .select('id')
+        .eq('job_id', job.job_id)
+        .eq('business_id', userProfile.id)
+        .maybeSingle();
+
+      if (findError) throw findError;
+
+      if (existingConversation) {
+        router.push(`/chat/${existingConversation.id}`);
+      } else {
+        const { data: newConversation, error: createError } = await supabase
+          .from('conversations')
+          .insert({
+            job_id: job.job_id,
+            customer_id: job.job.customer_id,
+            business_id: userProfile.id,
+          })
+          .select('id')
+          .single();
+
+        if (createError) throw createError;
+        router.push(`/chat/${newConversation.id}`);
+      }
+    } catch (error) {
+      console.error('Error opening conversation:', error);
+    }
   };
 
   const renderJob = ({ item }: { item: WonJob }) => {
@@ -182,6 +225,14 @@ export default function WonJobs() {
                 </View>
               </View>
             )}
+
+            <TouchableOpacity
+              style={styles.messageButton}
+              onPress={() => handleMessageCustomer(item)}
+            >
+              <MessageCircle size={18} color="#007AFF" />
+              <Text style={styles.messageButtonText}>Message Customer</Text>
+            </TouchableOpacity>
           </View>
         )}
 
@@ -327,6 +378,22 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#007AFF',
     fontWeight: '500',
+  },
+  messageButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: '#F0F8FF',
+    borderRadius: 8,
+  },
+  messageButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#007AFF',
   },
   emptyContainer: {
     alignItems: 'center',
