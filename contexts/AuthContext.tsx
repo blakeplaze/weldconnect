@@ -165,6 +165,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signOut = async () => {
     console.log('SignOut: Starting sign out process');
     try {
+      setSession(null);
+      setUserProfile(null);
+
       const { error } = await supabase.auth.signOut();
       if (error && error.message !== 'Auth session missing!') {
         console.error('SignOut: Supabase error:', error);
@@ -174,8 +177,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (err: any) {
       if (err.message === 'Auth session missing!' || err.name === 'AuthSessionMissingError') {
         console.log('SignOut: Session already cleared, proceeding');
-        setSession(null);
-        setUserProfile(null);
         return;
       }
       console.error('SignOut: Caught error:', err);
