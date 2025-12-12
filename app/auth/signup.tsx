@@ -9,10 +9,10 @@ import {
   Platform,
   ScrollView,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
-import { Wrench } from 'lucide-react-native';
 
 export default function SignUp() {
   const [fullName, setFullName] = useState('');
@@ -52,7 +52,11 @@ export default function SignUp() {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.logoContainer}>
-          <Wrench size={60} color="#007AFF" />
+          <Image
+            source={require('@/assets/images/image.png')}
+            style={styles.logo}
+            resizeMode="contain"
+          />
           <Text style={styles.title}>Create Account</Text>
         </View>
 
@@ -170,11 +174,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 32,
   },
+  logo: {
+    width: 280,
+    height: 70,
+    marginBottom: 12,
+  },
   title: {
     fontSize: 28,
     fontWeight: '700',
     color: '#1a1a1a',
-    marginTop: 16,
+    marginTop: 8,
   },
   form: {
     gap: 16,

@@ -9,10 +9,10 @@ import {
   Platform,
   ScrollView,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
-import { Wrench } from 'lucide-react-native';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -49,8 +49,11 @@ export default function Login() {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.logoContainer}>
-          <Wrench size={60} color="#007AFF" />
-          <Text style={styles.title}>WeldConnect</Text>
+          <Image
+            source={require('@/assets/images/image.png')}
+            style={styles.logo}
+            resizeMode="contain"
+          />
           <Text style={styles.subtitle}>Mobile Welding Network</Text>
         </View>
 
@@ -115,11 +118,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 40,
   },
-  title: {
-    fontSize: 32,
-    fontWeight: '700',
-    color: '#1a1a1a',
-    marginTop: 16,
+  logo: {
+    width: 320,
+    height: 80,
+    marginBottom: 16,
   },
   subtitle: {
     fontSize: 16,
