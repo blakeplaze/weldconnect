@@ -8,10 +8,11 @@ import {
   RefreshControl,
   TouchableOpacity,
   Image,
+  Alert,
 } from 'react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
-import { MapPin, Phone, User, DollarSign, MessageCircle } from 'lucide-react-native';
+import { MapPin, Phone, User, DollarSign, MessageCircle, CheckCircle } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 
 interface WonJob {
@@ -40,6 +41,7 @@ export default function WonJobs() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [completingJobId, setCompletingJobId] = useState<string | null>(null);
 
   useEffect(() => {
     if (authLoading) {
@@ -174,8 +176,47 @@ export default function WonJobs() {
     }
   };
 
+  const handleMarkComplete = async (job: WonJob) => {
+    Alert.alert(
+      'Mark Job as Completed',
+      'Are you sure you want to mark this job as completed? The customer will be able to leave a review.',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Mark Complete',
+          onPress: async () => {
+            setCompletingJobId(job.job_id);
+            try {
+              const { error } = await supabase
+                .from('jobs')
+                .update({ status: 'completed' })
+                .eq('id', job.job_id);
+
+              if (error) throw error;
+
+              Alert.alert('Success', 'Job marked as completed');
+              if (session) {
+                loadWonJobs(session.user.id);
+              }
+            } catch (error: any) {
+              console.error('Error marking job as completed:', error);
+              Alert.alert('Error', error.message || 'Failed to mark job as completed');
+            } finally {
+              setCompletingJobId(null);
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const renderJob = ({ item }: { item: WonJob }) => {
     const isExpanded = expandedId === item.id;
+    const isAwarded = item.job.status === 'awarded';
+    const isCompleted = item.job.status === 'completed';
 
     return (
       <TouchableOpacity
@@ -184,7 +225,15 @@ export default function WonJobs() {
         activeOpacity={0.7}
       >
         <View style={styles.jobHeader}>
-          <Text style={styles.jobTitle}>{item.job.title}</Text>
+          <View style={styles.titleContainer}>
+            <Text style={styles.jobTitle}>{item.job.title}</Text>
+            {isCompleted && (
+              <View style={styles.completedBadge}>
+                <CheckCircle size={14} color="#34C759" />
+                <Text style={styles.completedText}>Completed</Text>
+              </View>
+            )}
+          </View>
           <View style={styles.amountBadge}>
             <DollarSign size={16} color="#34C759" />
             <Text style={styles.amountText}>${item.amount.toFixed(2)}</Text>
@@ -195,13 +244,32 @@ export default function WonJobs() {
           {item.job.description}
         </Text>
 
-        <TouchableOpacity
-          style={styles.messageButton}
-          onPress={() => handleMessageCustomer(item)}
-        >
-          <MessageCircle size={18} color="#007AFF" />
-          <Text style={styles.messageButtonText}>Message Customer</Text>
-        </TouchableOpacity>
+        <View style={styles.buttonRow}>
+          <TouchableOpacity
+            style={[styles.actionButton, styles.messageButton]}
+            onPress={() => handleMessageCustomer(item)}
+          >
+            <MessageCircle size={18} color="#007AFF" />
+            <Text style={styles.messageButtonText}>Message Customer</Text>
+          </TouchableOpacity>
+
+          {isAwarded && (
+            <TouchableOpacity
+              style={[styles.actionButton, styles.completeButton]}
+              onPress={() => handleMarkComplete(item)}
+              disabled={completingJobId === item.job_id}
+            >
+              {completingJobId === item.job_id ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <>
+                  <CheckCircle size={18} color="#fff" />
+                  <Text style={styles.completeButtonText}>Mark Complete</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          )}
+        </View>
 
         {isExpanded && (
           <View style={styles.detailsContainer}>
@@ -322,11 +390,29 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     gap: 12,
   },
-  jobTitle: {
+  titleContainer: {
     flex: 1,
+    gap: 6,
+  },
+  jobTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: '#1a1a1a',
+  },
+  completedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    alignSelf: 'flex-start',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    backgroundColor: '#e8f5e9',
+    borderRadius: 6,
+  },
+  completedText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#34C759',
   },
   amountBadge: {
     flexDirection: 'row',
@@ -393,21 +479,36 @@ const styles = StyleSheet.create({
     color: '#007AFF',
     fontWeight: '500',
   },
-  messageButton: {
+  buttonRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 12,
+  },
+  actionButton: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    marginTop: 12,
     paddingVertical: 12,
     paddingHorizontal: 16,
-    backgroundColor: '#F0F8FF',
     borderRadius: 8,
+  },
+  messageButton: {
+    backgroundColor: '#F0F8FF',
   },
   messageButtonText: {
     fontSize: 16,
     fontWeight: '600',
     color: '#007AFF',
+  },
+  completeButton: {
+    backgroundColor: '#34C759',
+  },
+  completeButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
   },
   emptyContainer: {
     alignItems: 'center',
