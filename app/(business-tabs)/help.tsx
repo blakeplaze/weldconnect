@@ -11,9 +11,10 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { ChevronDown, ChevronUp, Mail, HelpCircle, Clock } from 'lucide-react-native';
+import { ChevronDown, ChevronUp, Mail, HelpCircle, Clock, Trash2 } from 'lucide-react-native';
 import { supabase } from '@/lib/supabase';
 import ContactSuccessModal from '@/components/ContactSuccessModal';
+import DeleteAccountModal from '@/components/DeleteAccountModal';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface FAQ {
@@ -74,6 +75,8 @@ export default function Help() {
   const [cooldownRemaining, setCooldownRemaining] = useState<number | null>(null);
   const [isCheckingCooldown, setIsCheckingCooldown] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     checkCooldown();
@@ -214,6 +217,28 @@ export default function Help() {
 
   const isFormDisabled = cooldownRemaining !== null && cooldownRemaining > 0;
 
+  const handleDeleteAccount = async () => {
+    if (!session?.user) return;
+
+    setIsDeleting(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('delete-account', {
+        method: 'POST',
+      });
+
+      if (error) throw error;
+
+      setShowDeleteModal(false);
+    } catch (error) {
+      console.error('Error deleting account:', error);
+      setErrorMessage('Failed to delete account. Please try again or contact support.');
+      setShowDeleteModal(false);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   return (
     <KeyboardAvoidingView
       style={styles.container}
@@ -223,6 +248,12 @@ export default function Help() {
         visible={showSuccessModal}
         onClose={() => setShowSuccessModal(false)}
         homeRoute="/(business-tabs)"
+      />
+      <DeleteAccountModal
+        visible={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={handleDeleteAccount}
+        isDeleting={isDeleting}
       />
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
@@ -340,6 +371,23 @@ export default function Help() {
               )}
             </TouchableOpacity>
           </View>
+        </View>
+
+        <View style={styles.dangerSection}>
+          <View style={styles.dangerHeader}>
+            <Trash2 size={24} color="#dc2626" />
+            <Text style={styles.dangerTitle}>Danger Zone</Text>
+          </View>
+          <Text style={styles.dangerSubtitle}>
+            Once you delete your account, there is no going back. This will cancel any active subscriptions and permanently delete all your data.
+          </Text>
+          <TouchableOpacity
+            style={styles.deleteButton}
+            onPress={() => setShowDeleteModal(true)}
+          >
+            <Trash2 size={20} color="#fff" />
+            <Text style={styles.deleteButtonText}>Delete Account</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -493,5 +541,46 @@ const styles = StyleSheet.create({
   errorText: {
     fontSize: 14,
     color: '#991b1b',
+  },
+  dangerSection: {
+    backgroundColor: '#fff',
+    marginTop: 16,
+    marginBottom: 32,
+    paddingHorizontal: 20,
+    paddingVertical: 24,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: '#fee2e2',
+  },
+  dangerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  dangerTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#dc2626',
+    marginLeft: 8,
+  },
+  dangerSubtitle: {
+    fontSize: 14,
+    color: '#6b7280',
+    marginBottom: 20,
+    lineHeight: 20,
+  },
+  deleteButton: {
+    backgroundColor: '#dc2626',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    borderRadius: 8,
+    gap: 8,
+  },
+  deleteButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
