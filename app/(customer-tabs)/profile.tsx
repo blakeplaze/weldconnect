@@ -1,14 +1,67 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, ActivityIndicator, Alert } from 'react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'expo-router';
-import { User, Phone, Mail, LogOut, Camera } from 'lucide-react-native';
+import { User, Phone, Mail, LogOut, Camera, DollarSign, Briefcase } from 'lucide-react-native';
 import { pickImage, updateProfilePicture } from '@/lib/uploadImage';
+import { supabase } from '@/lib/supabase';
+
+interface CustomerStats {
+  totalSpent: number;
+  activeJobs: number;
+}
 
 export default function Profile() {
   const { userProfile, session, signOut, refreshProfile } = useAuth();
   const router = useRouter();
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [stats, setStats] = useState<CustomerStats | null>(null);
+  const [loadingStats, setLoadingStats] = useState(true);
+
+  useEffect(() => {
+    if (session?.user.id) {
+      loadCustomerStats(session.user.id);
+    }
+  }, [session?.user.id]);
+
+  const loadCustomerStats = async (userId: string) => {
+    try {
+      const { data: jobs, error: jobsError } = await supabase
+        .from('jobs')
+        .select('id, status, winning_bid_id')
+        .eq('customer_id', userId);
+
+      if (jobsError) throw jobsError;
+
+      const activeJobs = jobs?.filter(
+        j => j.status === 'open' || j.status === 'awaiting_completion'
+      ).length || 0;
+
+      const completedJobsWithWinners = jobs?.filter(j => j.winning_bid_id !== null) || [];
+
+      let totalSpent = 0;
+      if (completedJobsWithWinners.length > 0) {
+        const winningBidIds = completedJobsWithWinners.map(j => j.winning_bid_id);
+        const { data: bids, error: bidsError } = await supabase
+          .from('bids')
+          .select('id, amount')
+          .in('id', winningBidIds);
+
+        if (bidsError) throw bidsError;
+
+        totalSpent = bids?.reduce((sum, bid) => sum + Number(bid.amount), 0) || 0;
+      }
+
+      setStats({
+        totalSpent,
+        activeJobs,
+      });
+    } catch (err) {
+      console.error('Error loading customer stats:', err);
+    } finally {
+      setLoadingStats(false);
+    }
+  };
 
   const handleUploadProfilePicture = async () => {
     if (!session?.user.id) return;
@@ -68,6 +121,29 @@ export default function Profile() {
         <Text style={styles.name}>{userProfile?.full_name}</Text>
         <Text style={styles.userType}>Customer Account</Text>
       </View>
+
+      {!loadingStats && stats && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Activity</Text>
+          <View style={styles.statsRow}>
+            <View style={styles.statCard}>
+              <View style={styles.statIconContainer}>
+                <DollarSign size={24} color="#34C759" />
+              </View>
+              <Text style={styles.statValue}>${stats.totalSpent.toFixed(0)}</Text>
+              <Text style={styles.statLabel}>Total Spent</Text>
+            </View>
+
+            <View style={styles.statCard}>
+              <View style={styles.statIconContainer}>
+                <Briefcase size={24} color="#007AFF" />
+              </View>
+              <Text style={styles.statValue}>{stats.activeJobs}</Text>
+              <Text style={styles.statLabel}>Active Jobs</Text>
+            </View>
+          </View>
+        </View>
+      )}
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Account Information</Text>
@@ -202,5 +278,35 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#FF3B30',
+  },
+  statsRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  statCard: {
+    flex: 1,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    gap: 8,
+  },
+  statIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#f0f0f0',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  statValue: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#1a1a1a',
+  },
+  statLabel: {
+    fontSize: 12,
+    color: '#666',
+    textAlign: 'center',
   },
 });
