@@ -243,11 +243,21 @@ export default function WonJobs() {
 
         <View style={styles.buttonRow}>
           <TouchableOpacity
-            style={[styles.actionButton, styles.messageButton]}
+            style={[
+              styles.actionButton,
+              styles.messageButton,
+              isCompleted && styles.messageButtonDisabled
+            ]}
             onPress={() => handleMessageCustomer(item)}
+            disabled={isCompleted}
           >
-            <MessageCircle size={18} color="#007AFF" />
-            <Text style={styles.messageButtonText}>Message Customer</Text>
+            <MessageCircle size={18} color={isCompleted ? "#999" : "#007AFF"} />
+            <Text style={[
+              styles.messageButtonText,
+              isCompleted && styles.messageButtonTextDisabled
+            ]}>
+              Message Customer
+            </Text>
           </TouchableOpacity>
 
           {(isAwarded || isCompleted) && (
@@ -518,10 +528,17 @@ const styles = StyleSheet.create({
   messageButton: {
     backgroundColor: '#F0F8FF',
   },
+  messageButtonDisabled: {
+    backgroundColor: '#f0f0f0',
+    opacity: 0.5,
+  },
   messageButtonText: {
     fontSize: 16,
     fontWeight: '600',
     color: '#007AFF',
+  },
+  messageButtonTextDisabled: {
+    color: '#999',
   },
   completeButton: {
     backgroundColor: '#34C759',
