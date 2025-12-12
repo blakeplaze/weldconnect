@@ -14,7 +14,7 @@ import { supabase } from '@/lib/supabase';
 import { MapPin, Phone, User, DollarSign, MessageCircle, CheckCircle } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import ConfirmModal from '@/components/ConfirmModal';
-import { JobPostSuccessModal } from '@/components/JobPostSuccessModal';
+import SuccessModal from '@/components/SuccessModal';
 
 interface WonJob {
   id: string;
@@ -369,7 +369,7 @@ export default function WonJobs() {
         loading={completingJobId !== null}
       />
 
-      <JobPostSuccessModal
+      <SuccessModal
         visible={showSuccessModal}
         onClose={() => setShowSuccessModal(false)}
         title="Job Completed!"
