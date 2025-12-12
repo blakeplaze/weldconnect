@@ -363,6 +363,14 @@ export default function ChatScreen() {
           editable={!sending}
           onSubmitEditing={sendMessage}
           blurOnSubmit={false}
+          onKeyPress={(e: any) => {
+            if (Platform.OS === 'web' && e.nativeEvent.key === 'Enter' && !e.nativeEvent.shiftKey) {
+              e.preventDefault();
+              if (newMessage.trim() && !sending) {
+                sendMessage();
+              }
+            }
+          }}
         />
         <TouchableOpacity
           style={[styles.sendButton, sending && styles.sendButtonDisabled]}
