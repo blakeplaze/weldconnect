@@ -15,7 +15,7 @@ import * as WebBrowser from 'expo-web-browser';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'expo-router';
-import { Building2, MapPin, Mail, Phone, LogOut, CheckCircle, Camera } from 'lucide-react-native';
+import { Building2, MapPin, Mail, Phone, LogOut, CheckCircle, Camera, Trophy, TrendingUp, DollarSign } from 'lucide-react-native';
 import { geocodeCity } from '@/lib/geocoding';
 import { pickImage, updateProfilePicture } from '@/lib/uploadImage';
 
@@ -32,10 +32,18 @@ interface Business {
   longitude: number | null;
 }
 
+interface BusinessStats {
+  totalBids: number;
+  jobsWon: number;
+  acceptanceRate: number;
+  averageBidAmount: number;
+}
+
 export default function BusinessProfile() {
   const { userProfile, session, signOut, loading: authLoading, refreshProfile } = useAuth();
   const router = useRouter();
   const [business, setBusiness] = useState<Business | null>(null);
+  const [stats, setStats] = useState<BusinessStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [businessName, setBusinessName] = useState('');
@@ -85,6 +93,7 @@ export default function BusinessProfile() {
         setDescription(data.description || '');
         setRadiusMiles(data.radius_miles || 25);
         setEditing(false);
+        loadBusinessStats(data.id);
       } else {
         setEditing(true);
       }
@@ -92,6 +101,48 @@ export default function BusinessProfile() {
       console.error('Error loading business:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadBusinessStats = async (businessId: string) => {
+    try {
+      const { data: bids, error: bidsError } = await supabase
+        .from('bids')
+        .select('id, amount, job_id')
+        .eq('business_id', businessId);
+
+      if (bidsError) throw bidsError;
+
+      const totalBids = bids?.length || 0;
+
+      const bidAmounts = bids?.map(b => Number(b.amount)) || [];
+      const averageBidAmount = bidAmounts.length > 0
+        ? bidAmounts.reduce((sum, amt) => sum + amt, 0) / bidAmounts.length
+        : 0;
+
+      let jobsWon = 0;
+      if (bids && bids.length > 0) {
+        const bidIds = bids.map(b => b.id);
+        const { data: wonJobs, error: wonJobsError } = await supabase
+          .from('jobs')
+          .select('id, winning_bid_id')
+          .not('winning_bid_id', 'is', null)
+          .in('winning_bid_id', bidIds);
+
+        if (wonJobsError) throw wonJobsError;
+        jobsWon = wonJobs?.length || 0;
+      }
+
+      const acceptanceRate = totalBids > 0 ? (jobsWon / totalBids) * 100 : 0;
+
+      setStats({
+        totalBids,
+        jobsWon,
+        acceptanceRate,
+        averageBidAmount,
+      });
+    } catch (err) {
+      console.error('Error loading business stats:', err);
     }
   };
 
@@ -137,7 +188,7 @@ export default function BusinessProfile() {
 
       Alert.alert('Success', 'Business profile saved successfully');
       if (session) {
-        loadBusiness(session.user.id);
+        await loadBusiness(session.user.id);
       }
     } catch (err: any) {
       Alert.alert('Error', err.message || 'Failed to save business profile');
@@ -264,6 +315,37 @@ export default function BusinessProfile() {
         <Text style={styles.name}>{userProfile?.full_name}</Text>
         <Text style={styles.userType}>Business Owner</Text>
       </View>
+
+      {business && !editing && stats && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Performance</Text>
+          <View style={styles.statsGrid}>
+            <View style={styles.statCard}>
+              <View style={styles.statIconContainer}>
+                <Trophy size={24} color="#007AFF" />
+              </View>
+              <Text style={styles.statValue}>{stats.jobsWon}</Text>
+              <Text style={styles.statLabel}>Jobs Won</Text>
+            </View>
+
+            <View style={styles.statCard}>
+              <View style={styles.statIconContainer}>
+                <TrendingUp size={24} color="#34C759" />
+              </View>
+              <Text style={styles.statValue}>{stats.acceptanceRate.toFixed(1)}%</Text>
+              <Text style={styles.statLabel}>Acceptance Rate</Text>
+            </View>
+
+            <View style={styles.statCard}>
+              <View style={styles.statIconContainer}>
+                <DollarSign size={24} color="#FF9500" />
+              </View>
+              <Text style={styles.statValue}>${stats.averageBidAmount.toFixed(0)}</Text>
+              <Text style={styles.statLabel}>Avg Bid Amount</Text>
+            </View>
+          </View>
+        </View>
+      )}
 
       {business && !editing && (
         <>
@@ -700,5 +782,35 @@ const styles = StyleSheet.create({
   },
   radiusOptionTextSelected: {
     color: '#fff',
+  },
+  statsGrid: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  statCard: {
+    flex: 1,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    gap: 8,
+  },
+  statIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#f0f0f0',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  statValue: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#1a1a1a',
+  },
+  statLabel: {
+    fontSize: 12,
+    color: '#666',
+    textAlign: 'center',
   },
 });
