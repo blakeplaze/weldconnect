@@ -195,20 +195,46 @@ export default function ChatScreen() {
   const sendMessage = async () => {
     if ((!newMessage.trim() && !sending) || !id || !userProfile?.id) return;
 
+    const messageText = newMessage.trim();
+    const tempId = `temp-${Date.now()}`;
+
     try {
       setSending(true);
+      setNewMessage('');
 
-      const { error } = await supabase.from('messages').insert({
+      const tempMessage: Message = {
+        id: tempId,
         conversation_id: id,
         sender_id: userProfile.id,
-        message_text: newMessage.trim(),
-      });
+        message_text: messageText,
+        image_url: null,
+        read_at: null,
+        created_at: new Date().toISOString(),
+        sender_name: userProfile.full_name,
+      };
+
+      setMessages((prev) => [...prev, tempMessage]);
+
+      const { data, error } = await supabase
+        .from('messages')
+        .insert({
+          conversation_id: id,
+          sender_id: userProfile.id,
+          message_text: messageText,
+        })
+        .select()
+        .single();
 
       if (error) throw error;
 
-      setNewMessage('');
+      if (data) {
+        setMessages((prev) =>
+          prev.map((msg) => (msg.id === tempId ? { ...tempMessage, id: data.id } : msg))
+        );
+      }
     } catch (error) {
       console.error('Error sending message:', error);
+      setMessages((prev) => prev.filter((msg) => msg.id !== tempId));
     } finally {
       setSending(false);
     }
@@ -235,21 +261,47 @@ export default function ChatScreen() {
   const sendImageMessage = async (imageUri: string) => {
     if (!id || !userProfile?.id) return;
 
+    const tempId = `temp-${Date.now()}`;
+
     try {
       setSending(true);
 
       const imageUrl = await uploadImage(imageUri, 'message-images');
 
-      const { error } = await supabase.from('messages').insert({
+      const tempMessage: Message = {
+        id: tempId,
         conversation_id: id,
         sender_id: userProfile.id,
         message_text: 'Sent an image',
         image_url: imageUrl,
-      });
+        read_at: null,
+        created_at: new Date().toISOString(),
+        sender_name: userProfile.full_name,
+      };
+
+      setMessages((prev) => [...prev, tempMessage]);
+
+      const { data, error } = await supabase
+        .from('messages')
+        .insert({
+          conversation_id: id,
+          sender_id: userProfile.id,
+          message_text: 'Sent an image',
+          image_url: imageUrl,
+        })
+        .select()
+        .single();
 
       if (error) throw error;
+
+      if (data) {
+        setMessages((prev) =>
+          prev.map((msg) => (msg.id === tempId ? { ...tempMessage, id: data.id } : msg))
+        );
+      }
     } catch (error) {
       console.error('Error sending image:', error);
+      setMessages((prev) => prev.filter((msg) => msg.id !== tempId));
     } finally {
       setSending(false);
     }
