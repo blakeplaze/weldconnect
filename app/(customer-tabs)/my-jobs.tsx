@@ -67,13 +67,13 @@ export default function MyJobs() {
           if (job.winning_bid_id) {
             const { data: bidData } = await supabase
               .from('bids')
-              .select('business_id, profiles!inner(full_name)')
+              .select('businesses!inner(owner_id, business_name)')
               .eq('id', job.winning_bid_id)
               .maybeSingle();
 
             if (bidData) {
-              businessId = bidData.business_id;
-              businessName = (bidData.profiles as any)?.full_name;
+              businessId = (bidData.businesses as any)?.owner_id;
+              businessName = (bidData.businesses as any)?.business_name;
 
               const { data: reviewData } = await supabase
                 .from('reviews')
