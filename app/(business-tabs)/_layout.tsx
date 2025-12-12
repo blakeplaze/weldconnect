@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { Briefcase, DollarSign, List, User, MessageCircle } from 'lucide-react-native';
+import { Briefcase, DollarSign, List, User, MessageCircle, HelpCircle } from 'lucide-react-native';
 
 export default function BusinessTabLayout() {
   return (
@@ -40,6 +40,13 @@ export default function BusinessTabLayout() {
         options={{
           title: 'Messages',
           tabBarIcon: ({ size, color }) => <MessageCircle size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="help"
+        options={{
+          title: 'Help',
+          tabBarIcon: ({ size, color }) => <HelpCircle size={size} color={color} />,
         }}
       />
       <Tabs.Screen

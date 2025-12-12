@@ -1,0 +1,322 @@
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  TextInput,
+  Alert,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+} from 'react-native';
+import { ChevronDown, ChevronUp, Mail, HelpCircle } from 'lucide-react-native';
+import { supabase } from '@/lib/supabase';
+
+interface FAQ {
+  question: string;
+  answer: string;
+}
+
+const faqs: FAQ[] = [
+  {
+    question: 'How do I post a job?',
+    answer: 'Navigate to the "Post Job" tab, fill in the job details including title, description, and location. Add photos if needed, then submit. Your job will be visible to businesses in your area.',
+  },
+  {
+    question: 'How do businesses bid on my job?',
+    answer: 'Once you post a job, nearby businesses will receive notifications and can submit bids with their proposed price and timeline. You\'ll see all bids on your job details page.',
+  },
+  {
+    question: 'How do I select a winning bid?',
+    answer: 'View your job from "My Jobs" tab, review all the bids, and tap "Award Job" on your preferred bid. The business will be notified and you can coordinate through the messaging system.',
+  },
+  {
+    question: 'How do I message a business?',
+    answer: 'After awarding a job, you can message the business directly through the "Messages" tab. You\'ll see all your conversations there.',
+  },
+  {
+    question: 'Can I edit or delete a job after posting?',
+    answer: 'You cannot edit a job after posting, but you can delete it from the job details page if needed. Note that this will remove all associated bids.',
+  },
+  {
+    question: 'How do I set my service radius as a business?',
+    answer: 'In your profile, set your preferred service radius. You\'ll only see jobs within this distance from your business location.',
+  },
+  {
+    question: 'What happens after I submit a bid?',
+    answer: 'The customer will be notified of your bid. If they select your bid, you\'ll receive a notification and can start coordinating with them via messages.',
+  },
+  {
+    question: 'How do I update my profile?',
+    answer: 'Go to the "Profile" tab where you can update your business information, contact details, profile picture, and service preferences.',
+  },
+];
+
+export default function Help() {
+  const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [subject, setSubject] = useState('');
+  const [message, setMessage] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const toggleFAQ = (index: number) => {
+    setExpandedIndex(expandedIndex === index ? null : index);
+  };
+
+  const handleSubmit = async () => {
+    if (!name.trim() || !email.trim() || !subject.trim() || !message.trim()) {
+      Alert.alert('Error', 'Please fill in all fields');
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      Alert.alert('Error', 'Please enter a valid email address');
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('send-contact-email', {
+        body: { name, email, subject, message },
+      });
+
+      if (error) throw error;
+
+      Alert.alert('Success', 'Your message has been sent. We\'ll get back to you soon!');
+      setName('');
+      setEmail('');
+      setSubject('');
+      setMessage('');
+    } catch (error) {
+      console.error('Error sending message:', error);
+      Alert.alert('Error', 'Failed to send message. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        <View style={styles.header}>
+          <HelpCircle size={32} color="#2563eb" />
+          <Text style={styles.headerTitle}>Help & Support</Text>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Frequently Asked Questions</Text>
+
+          {faqs.map((faq, index) => (
+            <TouchableOpacity
+              key={index}
+              style={styles.faqItem}
+              onPress={() => toggleFAQ(index)}
+              activeOpacity={0.7}
+            >
+              <View style={styles.faqHeader}>
+                <Text style={styles.faqQuestion}>{faq.question}</Text>
+                {expandedIndex === index ? (
+                  <ChevronUp size={20} color="#2563eb" />
+                ) : (
+                  <ChevronDown size={20} color="#666" />
+                )}
+              </View>
+              {expandedIndex === index && (
+                <Text style={styles.faqAnswer}>{faq.answer}</Text>
+              )}
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        <View style={styles.section}>
+          <View style={styles.contactHeader}>
+            <Mail size={24} color="#2563eb" />
+            <Text style={styles.sectionTitle}>Contact Us</Text>
+          </View>
+          <Text style={styles.contactSubtitle}>
+            Can't find what you're looking for? Send us a message and we'll get back to you as soon as possible.
+          </Text>
+
+          <View style={styles.form}>
+            <Text style={styles.label}>Name</Text>
+            <TextInput
+              style={styles.input}
+              value={name}
+              onChangeText={setName}
+              placeholder="Your name"
+              placeholderTextColor="#999"
+            />
+
+            <Text style={styles.label}>Email</Text>
+            <TextInput
+              style={styles.input}
+              value={email}
+              onChangeText={setEmail}
+              placeholder="your.email@example.com"
+              placeholderTextColor="#999"
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
+
+            <Text style={styles.label}>Subject</Text>
+            <TextInput
+              style={styles.input}
+              value={subject}
+              onChangeText={setSubject}
+              placeholder="What is this regarding?"
+              placeholderTextColor="#999"
+            />
+
+            <Text style={styles.label}>Message</Text>
+            <TextInput
+              style={[styles.input, styles.messageInput]}
+              value={message}
+              onChangeText={setMessage}
+              placeholder="Tell us more..."
+              placeholderTextColor="#999"
+              multiline
+              numberOfLines={6}
+              textAlignVertical="top"
+            />
+
+            <TouchableOpacity
+              style={[styles.submitButton, isSubmitting && styles.submitButtonDisabled]}
+              onPress={handleSubmit}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.submitButtonText}>Send Message</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#f8f9fa',
+  },
+  scrollView: {
+    flex: 1,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: 60,
+    paddingBottom: 24,
+    paddingHorizontal: 20,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#1f2937',
+    marginLeft: 12,
+  },
+  section: {
+    backgroundColor: '#fff',
+    marginTop: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 24,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#1f2937',
+    marginBottom: 16,
+  },
+  faqItem: {
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
+  },
+  faqHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  faqQuestion: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1f2937',
+    flex: 1,
+    marginRight: 12,
+  },
+  faqAnswer: {
+    fontSize: 14,
+    color: '#6b7280',
+    marginTop: 12,
+    lineHeight: 20,
+  },
+  contactHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  contactSubtitle: {
+    fontSize: 14,
+    color: '#6b7280',
+    marginBottom: 24,
+    lineHeight: 20,
+  },
+  form: {
+    marginTop: 8,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 8,
+    marginTop: 16,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: '#1f2937',
+    backgroundColor: '#fff',
+  },
+  messageInput: {
+    minHeight: 120,
+    paddingTop: 12,
+  },
+  submitButton: {
+    backgroundColor: '#2563eb',
+    paddingVertical: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 24,
+    marginBottom: 16,
+  },
+  submitButtonDisabled: {
+    opacity: 0.6,
+  },
+  submitButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+});
