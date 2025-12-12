@@ -115,7 +115,7 @@ export default function JobDetails() {
         const winningBidData = normalizedBids.find(b => b.id === jobData.winning_bid_id);
         if (winningBidData) {
           setWinningBusiness({
-            id: winningBidData.business_id,
+            id: winningBidData.business.owner_id,
             name: winningBidData.business.business_name,
           });
         }
