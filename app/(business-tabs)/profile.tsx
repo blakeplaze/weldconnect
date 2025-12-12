@@ -15,7 +15,7 @@ import * as WebBrowser from 'expo-web-browser';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'expo-router';
-import { Building2, MapPin, Mail, Phone, LogOut, CheckCircle, Camera, Trophy, TrendingUp, DollarSign } from 'lucide-react-native';
+import { Building2, MapPin, Mail, Phone, LogOut, CheckCircle, Camera, Trophy, TrendingUp, DollarSign, Globe } from 'lucide-react-native';
 import { geocodeCity } from '@/lib/geocoding';
 import { pickImage, updateProfilePicture } from '@/lib/uploadImage';
 
@@ -25,6 +25,7 @@ interface Business {
   city: string;
   state: string;
   description: string | null;
+  website: string | null;
   is_subscribed: boolean;
   subscription_expires_at: string | null;
   radius_miles: number;
@@ -50,6 +51,7 @@ export default function BusinessProfile() {
   const [city, setCity] = useState('');
   const [state, setState] = useState('');
   const [description, setDescription] = useState('');
+  const [website, setWebsite] = useState('');
   const [radiusMiles, setRadiusMiles] = useState(25);
   const [saving, setSaving] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -91,6 +93,7 @@ export default function BusinessProfile() {
         setCity(data.city);
         setState(data.state);
         setDescription(data.description || '');
+        setWebsite(data.website || '');
         setRadiusMiles(data.radius_miles || 25);
         setEditing(false);
         loadBusinessStats(data.id);
@@ -164,6 +167,7 @@ export default function BusinessProfile() {
             city: city.trim().toLowerCase(),
             state: state.trim().toUpperCase(),
             description,
+            website: website.trim() || null,
             radius_miles: radiusMiles,
             latitude: coords?.latitude || null,
             longitude: coords?.longitude || null,
@@ -178,6 +182,7 @@ export default function BusinessProfile() {
           city: city.trim().toLowerCase(),
           state: state.trim().toUpperCase(),
           description,
+          website: website.trim() || null,
           radius_miles: radiusMiles,
           latitude: coords?.latitude || null,
           longitude: coords?.longitude || null,
@@ -391,6 +396,16 @@ export default function BusinessProfile() {
                   </View>
                 </View>
               )}
+
+              {business.website && (
+                <View style={styles.infoRow}>
+                  <Globe size={20} color="#666" />
+                  <View style={styles.infoContent}>
+                    <Text style={styles.infoLabel}>Website</Text>
+                    <Text style={styles.infoValue}>{business.website}</Text>
+                  </View>
+                </View>
+              )}
             </View>
           </View>
 
@@ -476,6 +491,19 @@ export default function BusinessProfile() {
                 multiline
                 numberOfLines={4}
                 textAlignVertical="top"
+                editable={!saving}
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Website</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="https://your-website.com"
+                value={website}
+                onChangeText={setWebsite}
+                keyboardType="url"
+                autoCapitalize="none"
                 editable={!saving}
               />
             </View>
