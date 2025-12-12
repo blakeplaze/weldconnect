@@ -267,6 +267,7 @@ export default function BusinessProfile() {
   const handleSignOut = async () => {
     try {
       await signOut();
+      router.replace('/auth/login');
     } catch (error) {
       console.error('Error signing out:', error);
     }
