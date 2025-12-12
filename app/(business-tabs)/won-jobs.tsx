@@ -29,7 +29,7 @@ interface WonJob {
     contact_phone: string | null;
     status: string;
     customer_id: string;
-    image_url: string | null;
+    job_image_url: string | null;
   };
 }
 
@@ -99,7 +99,7 @@ export default function WonJobs() {
             status,
             winning_bid_id,
             customer_id,
-            image_url
+            job_image_url
           )
         `
         )
@@ -207,11 +207,11 @@ export default function WonJobs() {
           <View style={styles.detailsContainer}>
             <View style={styles.divider} />
 
-            {item.job.image_url && (
+            {item.job.job_image_url && (
               <View style={styles.imageContainer}>
                 <Text style={styles.detailLabel}>Job Photo</Text>
                 <Image
-                  source={{ uri: item.job.image_url }}
+                  source={{ uri: item.job.job_image_url }}
                   style={styles.jobImage}
                   resizeMode="cover"
                 />
