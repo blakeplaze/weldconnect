@@ -212,7 +212,7 @@ export default function JobDetails() {
           ) : (
             <Clock size={20} color="#FF9500" />
           )}
-          <Text style={[styles.status, isAwarded && styles.statusAwarded]}>
+          <Text style={[styles.status, isAwarded && styles.statusAwarded, { marginLeft: 6 }]}>
             {job.status.toUpperCase()}
           </Text>
         </View>
@@ -222,7 +222,7 @@ export default function JobDetails() {
         <Text style={styles.title}>{job.title}</Text>
         <View style={styles.locationRow}>
           <MapPin size={16} color="#666" />
-          <Text style={styles.location}>
+          <Text style={[styles.location, { marginLeft: 4 }]}>
             {job.city}, {job.state}
           </Text>
         </View>
@@ -230,7 +230,7 @@ export default function JobDetails() {
 
       {job.job_image_url && (
         <View style={styles.imageCard}>
-          <Image source={{ uri: job.job_image_url }} style={styles.jobImage} />
+          <Image source={{ uri: job.job_image_url }} style={styles.jobImage} resizeMode="cover" />
         </View>
       )}
 
@@ -245,8 +245,8 @@ export default function JobDetails() {
         {bids.length > 0 && (
           <View style={styles.averageContainer}>
             <Award size={20} color="#FF9500" />
-            <Text style={styles.averageLabel}>Average Bid:</Text>
-            <Text style={styles.averageAmount}>${average.toFixed(2)}</Text>
+            <Text style={[styles.averageLabel, { marginLeft: 8 }]}>Average Bid:</Text>
+            <Text style={[styles.averageAmount, { marginLeft: 8 }]}>${average.toFixed(2)}</Text>
           </View>
         )}
 
@@ -254,19 +254,20 @@ export default function JobDetails() {
           <Text style={styles.noBidsText}>No bids yet</Text>
         ) : (
           <View style={styles.bidsList}>
-            {bids.map((bid) => (
+            {bids.map((bid, index) => (
               <View
                 key={bid.id}
                 style={[
                   styles.bidItem,
                   job.winning_bid_id === bid.id && styles.winningBid,
+                  index > 0 && { marginTop: 12 },
                 ]}
               >
                 <View style={styles.bidHeader}>
                   <Text style={styles.businessName}>{bid.business.business_name}</Text>
                   <View style={styles.bidAmountContainer}>
                     <DollarSign size={16} color="#007AFF" />
-                    <Text style={styles.bidAmount}>${bid.amount.toFixed(2)}</Text>
+                    <Text style={[styles.bidAmount, { marginLeft: 4 }]}>${bid.amount.toFixed(2)}</Text>
                   </View>
                 </View>
                 {bid.notes && (
@@ -277,12 +278,12 @@ export default function JobDetails() {
                   onPress={() => handleMessageBusiness(bid)}
                 >
                   <MessageCircle size={16} color="#007AFF" />
-                  <Text style={styles.messageButtonText}>Message</Text>
+                  <Text style={[styles.messageButtonText, { marginLeft: 6 }]}>Message</Text>
                 </TouchableOpacity>
                 {job.winning_bid_id === bid.id && (
                   <View style={styles.winnerBadge}>
                     <CheckCircle size={14} color="#34C759" />
-                    <Text style={styles.winnerText}>WINNER</Text>
+                    <Text style={[styles.winnerText, { marginLeft: 4 }]}>WINNER</Text>
                   </View>
                 )}
               </View>
@@ -298,7 +299,7 @@ export default function JobDetails() {
             onPress={handleAwardJob}
           >
             <Award size={20} color="#fff" />
-            <Text style={styles.awardButtonText}>Award Job to Winner</Text>
+            <Text style={[styles.awardButtonText, { marginLeft: 8 }]}>Award Job to Winner</Text>
           </TouchableOpacity>
           <Text style={styles.awardHint}>
             The bid closest to the average will automatically win
@@ -372,7 +373,6 @@ const styles = StyleSheet.create({
   statusContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
     paddingHorizontal: 12,
     paddingVertical: 6,
     backgroundColor: '#f5f5f5',
@@ -400,7 +400,6 @@ const styles = StyleSheet.create({
   locationRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
   },
   location: {
     fontSize: 16,
@@ -419,7 +418,6 @@ const styles = StyleSheet.create({
   jobImage: {
     width: '100%',
     height: 250,
-    resizeMode: 'cover',
   },
   sectionTitle: {
     fontSize: 18,
@@ -435,7 +433,6 @@ const styles = StyleSheet.create({
   averageContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
     padding: 12,
     backgroundColor: '#fff9e6',
     borderRadius: 8,
@@ -457,9 +454,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     paddingVertical: 24,
   },
-  bidsList: {
-    gap: 12,
-  },
+  bidsList: {},
   bidItem: {
     padding: 12,
     backgroundColor: '#f9f9f9',
@@ -486,7 +481,6 @@ const styles = StyleSheet.create({
   bidAmountContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
   },
   bidAmount: {
     fontSize: 18,
@@ -502,7 +496,6 @@ const styles = StyleSheet.create({
   messageButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
     marginTop: 8,
     paddingVertical: 8,
     paddingHorizontal: 12,
@@ -518,7 +511,6 @@ const styles = StyleSheet.create({
   winnerBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
     marginTop: 8,
   },
   winnerText: {
@@ -530,7 +522,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
     backgroundColor: '#007AFF',
     paddingVertical: 16,
     borderRadius: 12,

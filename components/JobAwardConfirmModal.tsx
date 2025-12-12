@@ -53,7 +53,7 @@ export default function JobAwardConfirmModal({
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.cancelButton}
+              style={[styles.cancelButton, { marginTop: 12 }]}
               onPress={onClose}
               disabled={loading}
             >
@@ -107,7 +107,6 @@ const styles = StyleSheet.create({
   },
   buttonContainer: {
     width: '100%',
-    gap: 12,
   },
   confirmButton: {
     backgroundColor: '#007AFF',
