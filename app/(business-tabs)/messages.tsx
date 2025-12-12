@@ -37,7 +37,10 @@ export default function MessagesScreen() {
   const [isDeleting, setIsDeleting] = useState(false);
 
   const loadConversations = useCallback(async () => {
-    if (!userProfile?.id) return;
+    if (!userProfile?.id) {
+      setLoading(false);
+      return;
+    }
 
     try {
       const { data: convos, error } = await supabase

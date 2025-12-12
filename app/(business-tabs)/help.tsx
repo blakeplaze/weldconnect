@@ -23,6 +23,10 @@ interface FAQ {
 
 const faqs: FAQ[] = [
   {
+    question: 'Why can\'t I see available jobs?',
+    answer: 'To view and bid on available jobs, your business profile must have an active subscription. You can subscribe to a plan through your profile page.',
+  },
+  {
     question: 'How do I post a job?',
     answer: 'Navigate to the "Post Job" tab, fill in the job details including title, description, and location. Add photos if needed, then submit. Your job will be visible to businesses in your area.',
   },

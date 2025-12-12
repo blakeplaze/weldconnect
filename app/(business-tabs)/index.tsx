@@ -45,7 +45,7 @@ interface Business {
 }
 
 export default function AvailableJobs() {
-  const { session } = useAuth();
+  const { session, loading: authLoading } = useAuth();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [business, setBusiness] = useState<Business | null>(null);
   const [loading, setLoading] = useState(true);
@@ -59,13 +59,25 @@ export default function AvailableJobs() {
   const [bidError, setBidError] = useState('');
 
   useEffect(() => {
-    loadBusiness();
-  }, []);
+    if (authLoading) {
+      return;
+    }
+
+    if (session) {
+      console.log('Available Jobs: Loading jobs for user', session.user.id);
+      loadBusiness();
+    } else {
+      console.log('Available Jobs: No session, stopping load');
+      setLoading(false);
+    }
+  }, [authLoading, session]);
 
   useFocusEffect(
     useCallback(() => {
-      loadBusiness();
-    }, [])
+      if (session) {
+        loadBusiness();
+      }
+    }, [session])
   );
 
   const loadBidsForJobs = async (jobs: Job[], businessId: string): Promise<Job[]> => {
@@ -110,7 +122,7 @@ export default function AvailableJobs() {
       setBusiness(data);
 
       if (data) {
-        loadJobs(data);
+        await loadJobs(data);
       } else {
         console.log('Available Jobs: No business found');
       }
