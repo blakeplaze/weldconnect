@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   RefreshControl,
   TouchableOpacity,
+  Image,
 } from 'react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
@@ -28,6 +29,7 @@ interface WonJob {
     contact_phone: string | null;
     status: string;
     customer_id: string;
+    image_url: string | null;
   };
 }
 
@@ -96,7 +98,8 @@ export default function WonJobs() {
             contact_phone,
             status,
             winning_bid_id,
-            customer_id
+            customer_id,
+            image_url
           )
         `
         )
@@ -203,6 +206,17 @@ export default function WonJobs() {
         {isExpanded && (
           <View style={styles.detailsContainer}>
             <View style={styles.divider} />
+
+            {item.job.image_url && (
+              <View style={styles.imageContainer}>
+                <Text style={styles.detailLabel}>Job Photo</Text>
+                <Image
+                  source={{ uri: item.job.image_url }}
+                  style={styles.jobImage}
+                  resizeMode="cover"
+                />
+              </View>
+            )}
 
             {item.job.address && (
               <View style={styles.detailRow}>
@@ -409,5 +423,15 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#999',
     textAlign: 'center',
+  },
+  imageContainer: {
+    gap: 8,
+    marginBottom: 12,
+  },
+  jobImage: {
+    width: '100%',
+    height: 200,
+    borderRadius: 8,
+    backgroundColor: '#f0f0f0',
   },
 });
