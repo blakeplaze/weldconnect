@@ -51,9 +51,18 @@ export default function ChatScreen() {
 
   useEffect(() => {
     if (id && userProfile?.id) {
-      loadConversationDetails();
-      loadMessages();
-      markMessagesAsRead();
+      const initializeChat = async () => {
+        try {
+          await loadConversationDetails();
+          await loadMessages();
+          await markMessagesAsRead();
+        } catch (error) {
+          console.error('Error initializing chat:', error);
+          setLoading(false);
+        }
+      };
+
+      initializeChat();
 
       const subscription = supabase
         .channel(`chat_${id}`)
@@ -78,6 +87,8 @@ export default function ChatScreen() {
       return () => {
         subscription.unsubscribe();
       };
+    } else if (id && !userProfile?.id) {
+      setLoading(false);
     }
   }, [id, userProfile?.id]);
 
