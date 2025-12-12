@@ -31,6 +31,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     let mounted = true;
+    let timeoutId: NodeJS.Timeout;
 
     const initAuth = async () => {
       try {
@@ -51,6 +52,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     };
 
+    timeoutId = setTimeout(() => {
+      if (mounted && loading) {
+        console.error('Auth initialization timeout - forcing loading to false');
+        setLoading(false);
+      }
+    }, 10000);
+
     initAuth();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
@@ -67,6 +75,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     return () => {
       mounted = false;
+      clearTimeout(timeoutId);
       subscription.unsubscribe();
     };
   }, []);
@@ -94,9 +103,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       setUserProfile(data);
 
-      const pushToken = await registerForPushNotificationsAsync();
-      if (pushToken) {
-        await savePushToken(userId, pushToken);
+      try {
+        const pushToken = await registerForPushNotificationsAsync();
+        if (pushToken) {
+          await savePushToken(userId, pushToken);
+        }
+      } catch (notifError) {
+        console.error('Error registering push notifications:', notifError);
       }
     } catch (error) {
       console.error('Error loading profile:', error);
