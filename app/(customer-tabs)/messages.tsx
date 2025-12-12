@@ -34,34 +34,7 @@ export default function MessagesScreen() {
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedConversations, setSelectedConversations] = useState<Set<string>>(new Set());
 
-  useEffect(() => {
-    if (userProfile?.id) {
-      const subscription = supabase
-        .channel('messages_changes')
-        .on(
-          'postgres_changes',
-          { event: '*', schema: 'public', table: 'messages' },
-          () => {
-            loadConversations();
-          }
-        )
-        .subscribe();
-
-      return () => {
-        subscription.unsubscribe();
-      };
-    }
-  }, [userProfile?.id]);
-
-  useFocusEffect(
-    useCallback(() => {
-      if (userProfile?.id) {
-        loadConversations();
-      }
-    }, [userProfile?.id])
-  );
-
-  const loadConversations = async () => {
+  const loadConversations = useCallback(async () => {
     if (!userProfile?.id) return;
 
     try {
@@ -126,7 +99,34 @@ export default function MessagesScreen() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [userProfile?.id]);
+
+  useEffect(() => {
+    if (userProfile?.id) {
+      const subscription = supabase
+        .channel('messages_changes')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'messages' },
+          () => {
+            loadConversations();
+          }
+        )
+        .subscribe();
+
+      return () => {
+        subscription.unsubscribe();
+      };
+    }
+  }, [userProfile?.id, loadConversations]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (userProfile?.id) {
+        loadConversations();
+      }
+    }, [userProfile?.id, loadConversations])
+  );
 
   const toggleSelectionMode = () => {
     setSelectionMode(!selectionMode);
