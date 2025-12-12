@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { MessageCircle } from 'lucide-react-native';
 
 interface Conversation {
@@ -33,8 +33,6 @@ export default function MessagesScreen() {
 
   useEffect(() => {
     if (userProfile?.id) {
-      loadConversations();
-
       const subscription = supabase
         .channel('messages_changes')
         .on(
@@ -51,6 +49,14 @@ export default function MessagesScreen() {
       };
     }
   }, [userProfile?.id]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (userProfile?.id) {
+        loadConversations();
+      }
+    }, [userProfile?.id])
+  );
 
   const loadConversations = async () => {
     if (!userProfile?.id) return;
