@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, ActivityIndicator, Alert, TextInput } from 'react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'expo-router';
-import { User, Phone, Mail, LogOut, Camera, DollarSign, Briefcase, Lock } from 'lucide-react-native';
+import { User, Phone, Mail, LogOut, Camera, DollarSign, Briefcase, Lock, FileText } from 'lucide-react-native';
 import { pickImage, updateProfilePicture } from '@/lib/uploadImage';
 import { supabase } from '@/lib/supabase';
 
@@ -294,6 +294,17 @@ export default function Profile() {
       </View>
 
       <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Legal</Text>
+        <TouchableOpacity
+          style={styles.privacyButton}
+          onPress={() => router.push('/privacy-policy')}
+        >
+          <FileText size={20} color="#007AFF" />
+          <Text style={styles.privacyText}>Privacy Policy</Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.section}>
         <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
           <LogOut size={20} color="#FF3B30" />
           <Text style={styles.signOutText}>Sign Out</Text>
@@ -505,5 +516,21 @@ const styles = StyleSheet.create({
     color: '#666',
     fontSize: 16,
     fontWeight: '600',
+  },
+  privacyButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#fff',
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#007AFF',
+  },
+  privacyText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#007AFF',
   },
 });

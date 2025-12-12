@@ -18,6 +18,7 @@ function RootLayoutContent() {
         <Stack.Screen name="(business-tabs)" />
         <Stack.Screen name="job-details/[id]" />
         <Stack.Screen name="chat/[id]" />
+        <Stack.Screen name="privacy-policy" />
         <Stack.Screen name="+not-found" />
       </Stack>
       <StatusBar style="auto" />

@@ -15,7 +15,7 @@ import * as WebBrowser from 'expo-web-browser';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'expo-router';
-import { Building2, MapPin, Mail, Phone, LogOut, CheckCircle, Camera, Trophy, TrendingUp, DollarSign, Globe, Lock, Star } from 'lucide-react-native';
+import { Building2, MapPin, Mail, Phone, LogOut, CheckCircle, Camera, Trophy, TrendingUp, DollarSign, Globe, Lock, Star, FileText } from 'lucide-react-native';
 import { geocodeCity } from '@/lib/geocoding';
 import { pickImage, updateProfilePicture } from '@/lib/uploadImage';
 
@@ -833,6 +833,17 @@ export default function BusinessProfile() {
       </View>
 
       <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Legal</Text>
+        <TouchableOpacity
+          style={styles.privacyButton}
+          onPress={() => router.push('/privacy-policy')}
+        >
+          <FileText size={20} color="#007AFF" />
+          <Text style={styles.privacyText}>Privacy Policy</Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.section}>
         <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
           <LogOut size={20} color="#FF3B30" />
           <Text style={styles.signOutText}>Sign Out</Text>
@@ -1235,6 +1246,22 @@ const styles = StyleSheet.create({
   },
   expandButtonText: {
     fontSize: 15,
+    fontWeight: '600',
+    color: '#007AFF',
+  },
+  privacyButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#fff',
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#007AFF',
+  },
+  privacyText: {
+    fontSize: 16,
     fontWeight: '600',
     color: '#007AFF',
   },
