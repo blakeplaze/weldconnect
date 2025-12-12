@@ -361,6 +361,15 @@ export default function BusinessProfile() {
         </View>
         <Text style={styles.name}>{userProfile?.full_name}</Text>
         <Text style={styles.userType}>Business Owner</Text>
+        {session?.user.created_at && (
+          <Text style={styles.accountDate}>
+            Member since {new Date(session.user.created_at).toLocaleDateString('en-US', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric'
+            })}
+          </Text>
+        )}
       </View>
 
       {business && !editing && stats && (
@@ -757,6 +766,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: 'rgba(255, 255, 255, 0.8)',
     marginTop: 4,
+  },
+  accountDate: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.7)',
+    marginTop: 4,
+    fontStyle: 'italic',
   },
   section: {
     padding: 16,
