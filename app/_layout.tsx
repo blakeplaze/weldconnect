@@ -3,12 +3,13 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 import { AuthProvider } from '@/contexts/AuthContext';
+import { useNotifications } from '@/hooks/useNotifications';
 
-export default function RootLayout() {
-  useFrameworkReady();
+function RootLayoutContent() {
+  useNotifications();
 
   return (
-    <AuthProvider>
+    <>
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="index" />
         <Stack.Screen name="auth/login" />
@@ -16,9 +17,20 @@ export default function RootLayout() {
         <Stack.Screen name="(customer-tabs)" />
         <Stack.Screen name="(business-tabs)" />
         <Stack.Screen name="job-details/[id]" />
+        <Stack.Screen name="chat/[id]" />
         <Stack.Screen name="+not-found" />
       </Stack>
       <StatusBar style="auto" />
+    </>
+  );
+}
+
+export default function RootLayout() {
+  useFrameworkReady();
+
+  return (
+    <AuthProvider>
+      <RootLayoutContent />
     </AuthProvider>
   );
 }

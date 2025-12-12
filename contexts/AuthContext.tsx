@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
+import { registerForPushNotificationsAsync, savePushToken } from '@/lib/notifications';
 
 interface AuthContextType {
   session: Session | null;
@@ -92,6 +93,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       setUserProfile(data);
+
+      const pushToken = await registerForPushNotificationsAsync();
+      if (pushToken) {
+        await savePushToken(userId, pushToken);
+      }
     } catch (error) {
       console.error('Error loading profile:', error);
     } finally {

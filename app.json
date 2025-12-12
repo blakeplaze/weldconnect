@@ -11,6 +11,16 @@
     "ios": {
       "supportsTablet": true
     },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/icon.png",
+        "backgroundColor": "#ffffff"
+      }
+    },
+    "notification": {
+      "icon": "./assets/images/icon.png",
+      "color": "#007AFF"
+    },
     "web": {
       "bundler": "metro",
       "output": "single",
@@ -20,7 +30,14 @@
       "expo-router",
       "expo-font",
       "expo-web-browser",
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/icon.png",
+          "color": "#007AFF"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
