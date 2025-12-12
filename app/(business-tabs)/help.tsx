@@ -59,7 +59,7 @@ const faqs: FAQ[] = [
 const COOLDOWN_MINUTES = 20;
 
 export default function Help() {
-  const { user } = useAuth();
+  const { session } = useAuth();
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -92,7 +92,7 @@ export default function Help() {
   }, [cooldownRemaining]);
 
   const checkCooldown = async () => {
-    if (!user) {
+    if (!session?.user) {
       setIsCheckingCooldown(false);
       return;
     }
@@ -101,7 +101,7 @@ export default function Help() {
       const { data, error } = await supabase
         .from('contact_form_submissions')
         .select('submitted_at')
-        .eq('user_id', user.id)
+        .eq('user_id', session.user.id)
         .order('submitted_at', { ascending: false })
         .limit(1)
         .maybeSingle();
@@ -134,13 +134,13 @@ export default function Help() {
     console.log('handleSubmit called');
     setErrorMessage(null);
 
-    if (!user) {
+    if (!session?.user) {
       console.log('No user found');
       setErrorMessage('You must be logged in to send a message');
       return;
     }
 
-    console.log('User:', user.id);
+    console.log('User:', session.user.id);
 
     if (cooldownRemaining !== null && cooldownRemaining > 0) {
       console.log('Cooldown active:', cooldownRemaining);
@@ -171,7 +171,7 @@ export default function Help() {
       const { error: dbError } = await supabase
         .from('contact_form_submissions')
         .insert({
-          user_id: user.id,
+          user_id: session.user.id,
           name: name.trim(),
           email: email.trim(),
           subject: subject.trim(),
