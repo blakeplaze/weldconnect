@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,8 +11,10 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { ChevronDown, ChevronUp, Mail, HelpCircle } from 'lucide-react-native';
+import { ChevronDown, ChevronUp, Mail, HelpCircle, Clock } from 'lucide-react-native';
 import { supabase } from '@/lib/supabase';
+import ContactSuccessModal from '@/components/ContactSuccessModal';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface FAQ {
   question: string;
@@ -54,19 +56,93 @@ const faqs: FAQ[] = [
   },
 ];
 
+const COOLDOWN_MINUTES = 20;
+
 export default function Help() {
+  const { user } = useAuth();
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [cooldownRemaining, setCooldownRemaining] = useState<number | null>(null);
+  const [isCheckingCooldown, setIsCheckingCooldown] = useState(true);
+
+  useEffect(() => {
+    checkCooldown();
+  }, []);
+
+  useEffect(() => {
+    if (cooldownRemaining !== null && cooldownRemaining > 0) {
+      const interval = setInterval(() => {
+        setCooldownRemaining((prev) => {
+          if (prev === null || prev <= 0) {
+            clearInterval(interval);
+            return null;
+          }
+          return prev - 1;
+        });
+      }, 60000);
+
+      return () => clearInterval(interval);
+    }
+  }, [cooldownRemaining]);
+
+  const checkCooldown = async () => {
+    if (!user) {
+      setIsCheckingCooldown(false);
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('contact_form_submissions')
+        .select('submitted_at')
+        .eq('user_id', user.id)
+        .order('submitted_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (error) throw error;
+
+      if (data) {
+        const lastSubmission = new Date(data.submitted_at);
+        const now = new Date();
+        const minutesSinceLastSubmission = Math.floor(
+          (now.getTime() - lastSubmission.getTime()) / (1000 * 60)
+        );
+
+        if (minutesSinceLastSubmission < COOLDOWN_MINUTES) {
+          setCooldownRemaining(COOLDOWN_MINUTES - minutesSinceLastSubmission);
+        }
+      }
+    } catch (error) {
+      console.error('Error checking cooldown:', error);
+    } finally {
+      setIsCheckingCooldown(false);
+    }
+  };
 
   const toggleFAQ = (index: number) => {
     setExpandedIndex(expandedIndex === index ? null : index);
   };
 
   const handleSubmit = async () => {
+    if (!user) {
+      Alert.alert('Error', 'You must be logged in to send a message');
+      return;
+    }
+
+    if (cooldownRemaining !== null && cooldownRemaining > 0) {
+      Alert.alert(
+        'Please Wait',
+        `You can submit another message in ${cooldownRemaining} minute${cooldownRemaining !== 1 ? 's' : ''}.`
+      );
+      return;
+    }
+
     if (!name.trim() || !email.trim() || !subject.trim() || !message.trim()) {
       Alert.alert('Error', 'Please fill in all fields');
       return;
@@ -81,17 +157,32 @@ export default function Help() {
     setIsSubmitting(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke('send-contact-email', {
+      const { error: dbError } = await supabase
+        .from('contact_form_submissions')
+        .insert({
+          user_id: user.id,
+          name: name.trim(),
+          email: email.trim(),
+          subject: subject.trim(),
+          message: message.trim(),
+        });
+
+      if (dbError) throw dbError;
+
+      const { error: emailError } = await supabase.functions.invoke('send-contact-email', {
         body: { name, email, subject, message },
       });
 
-      if (error) throw error;
+      if (emailError) {
+        console.error('Error sending email:', emailError);
+      }
 
-      Alert.alert('Success', 'Your message has been sent. We\'ll get back to you soon!');
+      setShowSuccessModal(true);
       setName('');
       setEmail('');
       setSubject('');
       setMessage('');
+      setCooldownRemaining(COOLDOWN_MINUTES);
     } catch (error) {
       console.error('Error sending message:', error);
       Alert.alert('Error', 'Failed to send message. Please try again.');
@@ -100,11 +191,18 @@ export default function Help() {
     }
   };
 
+  const isFormDisabled = cooldownRemaining !== null && cooldownRemaining > 0;
+
   return (
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
+      <ContactSuccessModal
+        visible={showSuccessModal}
+        onClose={() => setShowSuccessModal(false)}
+        homeRoute="/(business-tabs)"
+      />
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <HelpCircle size={32} color="#2563eb" />
@@ -145,39 +243,51 @@ export default function Help() {
             Can't find what you're looking for? Send us a message and we'll get back to you as soon as possible.
           </Text>
 
+          {isFormDisabled && (
+            <View style={styles.cooldownBanner}>
+              <Clock size={20} color="#f59e0b" />
+              <Text style={styles.cooldownText}>
+                You can submit another message in {cooldownRemaining} minute{cooldownRemaining !== 1 ? 's' : ''}
+              </Text>
+            </View>
+          )}
+
           <View style={styles.form}>
             <Text style={styles.label}>Name</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, isFormDisabled && styles.inputDisabled]}
               value={name}
               onChangeText={setName}
               placeholder="Your name"
               placeholderTextColor="#999"
+              editable={!isFormDisabled}
             />
 
             <Text style={styles.label}>Email</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, isFormDisabled && styles.inputDisabled]}
               value={email}
               onChangeText={setEmail}
               placeholder="your.email@example.com"
               placeholderTextColor="#999"
               keyboardType="email-address"
               autoCapitalize="none"
+              editable={!isFormDisabled}
             />
 
             <Text style={styles.label}>Subject</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, isFormDisabled && styles.inputDisabled]}
               value={subject}
               onChangeText={setSubject}
               placeholder="What is this regarding?"
               placeholderTextColor="#999"
+              editable={!isFormDisabled}
             />
 
             <Text style={styles.label}>Message</Text>
             <TextInput
-              style={[styles.input, styles.messageInput]}
+              style={[styles.input, styles.messageInput, isFormDisabled && styles.inputDisabled]}
               value={message}
               onChangeText={setMessage}
               placeholder="Tell us more..."
@@ -185,12 +295,16 @@ export default function Help() {
               multiline
               numberOfLines={6}
               textAlignVertical="top"
+              editable={!isFormDisabled}
             />
 
             <TouchableOpacity
-              style={[styles.submitButton, isSubmitting && styles.submitButtonDisabled]}
+              style={[
+                styles.submitButton,
+                (isSubmitting || isFormDisabled) && styles.submitButtonDisabled,
+              ]}
               onPress={handleSubmit}
-              disabled={isSubmitting}
+              disabled={isSubmitting || isFormDisabled}
             >
               {isSubmitting ? (
                 <ActivityIndicator color="#fff" />
@@ -318,5 +432,26 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  cooldownBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fef3c7',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#fbbf24',
+  },
+  cooldownText: {
+    fontSize: 14,
+    color: '#92400e',
+    marginLeft: 8,
+    flex: 1,
+  },
+  inputDisabled: {
+    backgroundColor: '#f3f4f6',
+    opacity: 0.6,
   },
 });
