@@ -192,6 +192,14 @@ export default function WonJobs() {
           {item.job.description}
         </Text>
 
+        <TouchableOpacity
+          style={styles.messageButton}
+          onPress={() => handleMessageCustomer(item)}
+        >
+          <MessageCircle size={18} color="#007AFF" />
+          <Text style={styles.messageButtonText}>Message Customer</Text>
+        </TouchableOpacity>
+
         {isExpanded && (
           <View style={styles.detailsContainer}>
             <View style={styles.divider} />
@@ -225,14 +233,6 @@ export default function WonJobs() {
                 </View>
               </View>
             )}
-
-            <TouchableOpacity
-              style={styles.messageButton}
-              onPress={() => handleMessageCustomer(item)}
-            >
-              <MessageCircle size={18} color="#007AFF" />
-              <Text style={styles.messageButtonText}>Message Customer</Text>
-            </TouchableOpacity>
           </View>
         )}
 
