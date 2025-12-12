@@ -45,6 +45,7 @@ export default function ChatScreen() {
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [conversationDetails, setConversationDetails] =
     useState<ConversationDetails | null>(null);
   const flatListRef = useRef<FlatList>(null);
@@ -53,11 +54,13 @@ export default function ChatScreen() {
     if (id && userProfile?.id) {
       const initializeChat = async () => {
         try {
+          setError(null);
           await loadConversationDetails();
           await loadMessages();
           await markMessagesAsRead();
-        } catch (error) {
-          console.error('Error initializing chat:', error);
+        } catch (err) {
+          console.error('Error initializing chat:', err);
+          setError('Failed to load conversation');
           setLoading(false);
         }
       };
@@ -88,6 +91,7 @@ export default function ChatScreen() {
         subscription.unsubscribe();
       };
     } else if (id && !userProfile?.id) {
+      setError('Please log in to view messages');
       setLoading(false);
     }
   }, [id, userProfile?.id]);
@@ -95,78 +99,72 @@ export default function ChatScreen() {
   const loadConversationDetails = async () => {
     if (!id || !userProfile?.id) return;
 
-    try {
-      const { data, error } = await supabase
-        .from('conversations')
-        .select(`
-          id,
-          job_id,
-          customer_id,
-          business_id,
-          jobs!inner(title),
-          customer:profiles!conversations_customer_id_fkey(id, full_name),
-          business:profiles!conversations_business_id_fkey(id, full_name)
-        `)
-        .eq('id', id)
-        .maybeSingle();
+    const { data, error } = await supabase
+      .from('conversations')
+      .select(`
+        id,
+        job_id,
+        customer_id,
+        business_id,
+        jobs!inner(title),
+        customer:profiles!conversations_customer_id_fkey(id, full_name),
+        business:profiles!conversations_business_id_fkey(id, full_name)
+      `)
+      .eq('id', id)
+      .maybeSingle();
 
-      if (error) throw error;
-      if (!data) return;
+    if (error) throw error;
 
-      const isCustomer = data.customer_id === userProfile.id;
-      const customer = Array.isArray(data.customer) ? data.customer[0] : data.customer;
-      const business = Array.isArray(data.business) ? data.business[0] : data.business;
-      const job = Array.isArray(data.jobs) ? data.jobs[0] : data.jobs;
-
-      const otherUserName = isCustomer
-        ? business?.full_name
-        : customer?.full_name;
-      const otherUserId = isCustomer ? data.business_id : data.customer_id;
-
-      setConversationDetails({
-        id: data.id,
-        job_id: data.job_id,
-        job_title: job?.title || 'Unknown Job',
-        other_user_name: otherUserName || 'Unknown User',
-        other_user_id: otherUserId,
-      });
-    } catch (error) {
-      console.error('Error loading conversation details:', error);
+    if (!data) {
+      throw new Error('Conversation not found');
     }
+
+    const isCustomer = data.customer_id === userProfile.id;
+    const customer = Array.isArray(data.customer) ? data.customer[0] : data.customer;
+    const business = Array.isArray(data.business) ? data.business[0] : data.business;
+    const job = Array.isArray(data.jobs) ? data.jobs[0] : data.jobs;
+
+    const otherUserName = isCustomer
+      ? business?.full_name
+      : customer?.full_name;
+    const otherUserId = isCustomer ? data.business_id : data.customer_id;
+
+    setConversationDetails({
+      id: data.id,
+      job_id: data.job_id,
+      job_title: job?.title || 'Unknown Job',
+      other_user_name: otherUserName || 'Unknown User',
+      other_user_id: otherUserId,
+    });
   };
 
   const loadMessages = async () => {
     if (!id) return;
 
-    try {
-      const { data, error } = await supabase
-        .from('messages')
-        .select(`
-          id,
-          conversation_id,
-          sender_id,
-          message_text,
-          image_url,
-          read_at,
-          created_at,
-          sender:profiles!messages_sender_id_fkey(full_name)
-        `)
-        .eq('conversation_id', id)
-        .order('created_at', { ascending: true });
+    const { data, error } = await supabase
+      .from('messages')
+      .select(`
+        id,
+        conversation_id,
+        sender_id,
+        message_text,
+        image_url,
+        read_at,
+        created_at,
+        sender:profiles!messages_sender_id_fkey(full_name)
+      `)
+      .eq('conversation_id', id)
+      .order('created_at', { ascending: true });
 
-      if (error) throw error;
+    if (error) throw error;
 
-      const messagesWithSender = (data || []).map((msg: any) => ({
-        ...msg,
-        sender_name: msg.sender?.full_name || 'Unknown',
-      }));
+    const messagesWithSender = (data || []).map((msg: any) => ({
+      ...msg,
+      sender_name: msg.sender?.full_name || 'Unknown',
+    }));
 
-      setMessages(messagesWithSender);
-    } catch (error) {
-      console.error('Error loading messages:', error);
-    } finally {
-      setLoading(false);
-    }
+    setMessages(messagesWithSender);
+    setLoading(false);
   };
 
   const addNewMessage = async (newMsg: any) => {
@@ -360,6 +358,37 @@ export default function ChatScreen() {
     );
   }
 
+  if (error) {
+    return (
+      <View style={styles.centerContainer}>
+        <Text style={styles.errorText}>{error}</Text>
+        <TouchableOpacity
+          style={styles.retryButton}
+          onPress={() => {
+            setLoading(true);
+            setError(null);
+            if (id && userProfile?.id) {
+              const retry = async () => {
+                try {
+                  await loadConversationDetails();
+                  await loadMessages();
+                  await markMessagesAsRead();
+                } catch (err) {
+                  console.error('Error retrying:', err);
+                  setError('Failed to load conversation');
+                  setLoading(false);
+                }
+              };
+              retry();
+            }
+          }}
+        >
+          <Text style={styles.retryButtonText}>Retry</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   return (
     <KeyboardAvoidingView
       style={styles.container}
@@ -539,5 +568,22 @@ const styles = StyleSheet.create({
   },
   sendButtonDisabled: {
     opacity: 0.5,
+  },
+  errorText: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  retryButton: {
+    backgroundColor: '#007AFF',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
