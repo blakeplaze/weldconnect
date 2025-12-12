@@ -8,12 +8,13 @@ import {
   RefreshControl,
   TouchableOpacity,
   Image,
-  Alert,
 } from 'react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { MapPin, Phone, User, DollarSign, MessageCircle, CheckCircle } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
+import ConfirmModal from '@/components/ConfirmModal';
+import { JobPostSuccessModal } from '@/components/JobPostSuccessModal';
 
 interface WonJob {
   id: string;
@@ -42,6 +43,9 @@ export default function WonJobs() {
   const [refreshing, setRefreshing] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [completingJobId, setCompletingJobId] = useState<string | null>(null);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [selectedJob, setSelectedJob] = useState<WonJob | null>(null);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   useEffect(() => {
     if (authLoading) {
@@ -176,41 +180,34 @@ export default function WonJobs() {
     }
   };
 
-  const handleMarkComplete = async (job: WonJob) => {
-    Alert.alert(
-      'Mark Job as Completed',
-      'Are you sure you want to mark this job as completed? The customer will be able to leave a review.',
-      [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-        {
-          text: 'Mark Complete',
-          onPress: async () => {
-            setCompletingJobId(job.job_id);
-            try {
-              const { error } = await supabase
-                .from('jobs')
-                .update({ status: 'completed' })
-                .eq('id', job.job_id);
+  const handleMarkComplete = (job: WonJob) => {
+    setSelectedJob(job);
+    setShowConfirmModal(true);
+  };
 
-              if (error) throw error;
+  const confirmMarkComplete = async () => {
+    if (!selectedJob) return;
 
-              Alert.alert('Success', 'Job marked as completed');
-              if (session) {
-                loadWonJobs(session.user.id);
-              }
-            } catch (error: any) {
-              console.error('Error marking job as completed:', error);
-              Alert.alert('Error', error.message || 'Failed to mark job as completed');
-            } finally {
-              setCompletingJobId(null);
-            }
-          },
-        },
-      ]
-    );
+    setCompletingJobId(selectedJob.job_id);
+    try {
+      const { error } = await supabase
+        .from('jobs')
+        .update({ status: 'completed' })
+        .eq('id', selectedJob.job_id);
+
+      if (error) throw error;
+
+      setShowConfirmModal(false);
+      setShowSuccessModal(true);
+
+      if (session) {
+        loadWonJobs(session.user.id);
+      }
+    } catch (error: any) {
+      console.error('Error marking job as completed:', error);
+    } finally {
+      setCompletingJobId(null);
+    }
   };
 
   const renderJob = ({ item }: { item: WonJob }) => {
@@ -359,6 +356,24 @@ export default function WonJobs() {
             </Text>
           </View>
         }
+      />
+
+      <ConfirmModal
+        visible={showConfirmModal}
+        title="Mark Job as Completed"
+        message="Are you sure you want to mark this job as completed? The customer will be able to leave a review."
+        confirmText="Mark Complete"
+        cancelText="Cancel"
+        onConfirm={confirmMarkComplete}
+        onCancel={() => setShowConfirmModal(false)}
+        loading={completingJobId !== null}
+      />
+
+      <JobPostSuccessModal
+        visible={showSuccessModal}
+        onClose={() => setShowSuccessModal(false)}
+        title="Job Completed!"
+        message="The job has been marked as completed. The customer can now leave a review."
       />
     </View>
   );
