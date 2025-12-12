@@ -126,11 +126,15 @@ export default function Profile() {
   };
 
   const handleSignOut = async () => {
+    console.log('Profile: Sign out button pressed');
     try {
+      console.log('Profile: Calling signOut');
       await signOut();
+      console.log('Profile: SignOut completed, navigating to login');
       router.replace('/auth/login');
     } catch (error) {
-      console.error('Error signing out:', error);
+      console.error('Profile: Error signing out:', error);
+      Alert.alert('Error', 'Failed to sign out. Please try again.');
     }
   };
 
