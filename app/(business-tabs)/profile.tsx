@@ -354,12 +354,12 @@ export default function BusinessProfile() {
   const handleSignOut = async () => {
     console.log('Profile: Sign out button pressed');
     try {
-      console.log('Profile: Calling signOut');
+      console.log('Profile: Calling signOut function');
       await signOut();
-      console.log('Profile: SignOut completed');
-    } catch (error) {
+      console.log('Profile: SignOut completed successfully');
+    } catch (error: any) {
       console.error('Profile: Error signing out:', error);
-      Alert.alert('Error', 'Failed to sign out. Please try again.');
+      Alert.alert('Error', error?.message || 'Failed to sign out. Please try again.');
     }
   };
 

@@ -61,16 +61,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     initAuth();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!mounted) return;
 
+      console.log('Auth state changed:', _event, 'session:', !!session);
       setSession(session);
-      if (session) {
-        await loadUserProfile(session.user.id);
-      } else {
-        setUserProfile(null);
-        setLoading(false);
-      }
+
+      (async () => {
+        if (session) {
+          await loadUserProfile(session.user.id);
+        } else {
+          setUserProfile(null);
+          setLoading(false);
+        }
+      })();
     });
 
     return () => {
@@ -165,21 +169,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signOut = async () => {
     console.log('SignOut: Starting sign out process');
     try {
+      console.log('SignOut: Clearing local state');
       setSession(null);
       setUserProfile(null);
+      setLoading(false);
 
+      console.log('SignOut: Calling supabase.auth.signOut()');
       const { error } = await supabase.auth.signOut();
-      if (error && error.message !== 'Auth session missing!') {
-        console.error('SignOut: Supabase error:', error);
-        throw error;
+
+      if (error) {
+        console.error('SignOut: Supabase signOut returned error:', error);
+        if (error.message !== 'Auth session missing!') {
+          throw error;
+        }
+        console.log('SignOut: Auth session missing, but thats ok');
       }
-      console.log('SignOut: Successfully signed out');
+
+      console.log('SignOut: Successfully completed');
     } catch (err: any) {
+      console.error('SignOut: Exception caught:', err);
       if (err.message === 'Auth session missing!' || err.name === 'AuthSessionMissingError') {
         console.log('SignOut: Session already cleared, proceeding');
         return;
       }
-      console.error('SignOut: Caught error:', err);
       throw err;
     }
   };
