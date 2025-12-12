@@ -105,11 +105,13 @@ export default function WonJobs() {
             status,
             winning_bid_id,
             customer_id,
-            job_image_url
+            job_image_url,
+            created_at
           )
         `
         )
-        .eq('business_id', businessData.id);
+        .eq('business_id', businessData.id)
+        .order('created_at', { foreignTable: 'jobs', ascending: false });
 
       if (error) {
         console.error('Won Jobs: Bids query error:', error);
