@@ -107,7 +107,7 @@ export default function Login() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#fff',
   },
   scrollContent: {
     flexGrow: 1,
@@ -117,6 +117,7 @@ const styles = StyleSheet.create({
   logoContainer: {
     alignItems: 'center',
     marginBottom: 40,
+    backgroundColor: 'transparent',
   },
   logo: {
     width: 320,
@@ -132,7 +133,7 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   input: {
-    backgroundColor: '#fff',
+    backgroundColor: '#f8f8f8',
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderRadius: 12,
