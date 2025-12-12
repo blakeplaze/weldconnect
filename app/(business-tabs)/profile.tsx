@@ -475,7 +475,7 @@ export default function BusinessProfile() {
                       <View style={styles.reviewHeader}>
                         <View>
                           <Text style={styles.reviewerName}>
-                            {(review.customer as any)?.full_name || 'Anonymous'}
+                            {(review.customer as any)?.full_name?.split(' ')[0] || 'Anonymous'}
                           </Text>
                           <Text style={styles.reviewJobTitle}>
                             Job: {(review.jobs as any)?.title || 'Unknown'}
