@@ -69,6 +69,7 @@ export default function Help() {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [cooldownRemaining, setCooldownRemaining] = useState<number | null>(null);
   const [isCheckingCooldown, setIsCheckingCooldown] = useState(true);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
     checkCooldown();
@@ -130,33 +131,43 @@ export default function Help() {
   };
 
   const handleSubmit = async () => {
+    console.log('handleSubmit called');
+    setErrorMessage(null);
+
     if (!user) {
-      Alert.alert('Error', 'You must be logged in to send a message');
+      console.log('No user found');
+      setErrorMessage('You must be logged in to send a message');
       return;
     }
 
+    console.log('User:', user.id);
+
     if (cooldownRemaining !== null && cooldownRemaining > 0) {
-      Alert.alert(
-        'Please Wait',
+      console.log('Cooldown active:', cooldownRemaining);
+      setErrorMessage(
         `You can submit another message in ${cooldownRemaining} minute${cooldownRemaining !== 1 ? 's' : ''}.`
       );
       return;
     }
 
     if (!name.trim() || !email.trim() || !subject.trim() || !message.trim()) {
-      Alert.alert('Error', 'Please fill in all fields');
+      console.log('Empty fields');
+      setErrorMessage('Please fill in all fields');
       return;
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      Alert.alert('Error', 'Please enter a valid email address');
+      console.log('Invalid email');
+      setErrorMessage('Please enter a valid email address');
       return;
     }
 
+    console.log('Starting submission');
     setIsSubmitting(true);
 
     try {
+      console.log('Inserting into database');
       const { error: dbError } = await supabase
         .from('contact_form_submissions')
         .insert({
@@ -167,7 +178,12 @@ export default function Help() {
           message: message.trim(),
         });
 
-      if (dbError) throw dbError;
+      if (dbError) {
+        console.error('Database error:', dbError);
+        throw dbError;
+      }
+
+      console.log('Database insert successful');
 
       const { error: emailError } = await supabase.functions.invoke('send-contact-email', {
         body: { name, email, subject, message },
@@ -177,6 +193,7 @@ export default function Help() {
         console.error('Error sending email:', emailError);
       }
 
+      console.log('Showing success modal');
       setShowSuccessModal(true);
       setName('');
       setEmail('');
@@ -185,7 +202,7 @@ export default function Help() {
       setCooldownRemaining(COOLDOWN_MINUTES);
     } catch (error) {
       console.error('Error sending message:', error);
-      Alert.alert('Error', 'Failed to send message. Please try again.');
+      setErrorMessage('Failed to send message. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -249,6 +266,12 @@ export default function Help() {
               <Text style={styles.cooldownText}>
                 You can submit another message in {cooldownRemaining} minute{cooldownRemaining !== 1 ? 's' : ''}
               </Text>
+            </View>
+          )}
+
+          {errorMessage && (
+            <View style={styles.errorBanner}>
+              <Text style={styles.errorText}>{errorMessage}</Text>
             </View>
           )}
 
@@ -453,5 +476,18 @@ const styles = StyleSheet.create({
   inputDisabled: {
     backgroundColor: '#f3f4f6',
     opacity: 0.6,
+  },
+  errorBanner: {
+    backgroundColor: '#fee2e2',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#ef4444',
+  },
+  errorText: {
+    fontSize: 14,
+    color: '#991b1b',
   },
 });
