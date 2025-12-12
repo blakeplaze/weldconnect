@@ -74,6 +74,7 @@ export default function BusinessProfile() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [updatingPassword, setUpdatingPassword] = useState(false);
+  const [reviewsExpanded, setReviewsExpanded] = useState(false);
 
   useEffect(() => {
     if (authLoading) {
@@ -470,7 +471,7 @@ export default function BusinessProfile() {
 
               {reviews.length > 0 && (
                 <View style={styles.reviewsList}>
-                  {reviews.map((review) => (
+                  {(reviewsExpanded ? reviews : reviews.slice(0, 1)).map((review) => (
                     <View key={review.id} style={styles.reviewCard}>
                       <View style={styles.reviewHeader}>
                         <View>
@@ -500,6 +501,20 @@ export default function BusinessProfile() {
                       </Text>
                     </View>
                   ))}
+
+                  {reviews.length > 1 && (
+                    <TouchableOpacity
+                      style={styles.expandButton}
+                      onPress={() => setReviewsExpanded(!reviewsExpanded)}
+                    >
+                      <Text style={styles.expandButtonText}>
+                        {reviewsExpanded
+                          ? 'Show Less'
+                          : `Show ${reviews.length - 1} More ${reviews.length - 1 === 1 ? 'Review' : 'Reviews'}`
+                        }
+                      </Text>
+                    </TouchableOpacity>
+                  )}
                 </View>
               )}
             </>
@@ -1204,5 +1219,19 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#999',
     textAlign: 'center',
+  },
+  expandButton: {
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    padding: 14,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    marginTop: 4,
+  },
+  expandButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#007AFF',
   },
 });
