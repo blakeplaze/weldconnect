@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import { registerForPushNotificationsAsync, savePushToken } from '@/lib/notifications';
+import { router } from 'expo-router';
 
 interface AuthContextType {
   session: Session | null;
@@ -185,11 +186,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log('SignOut: Auth session missing, but thats ok');
       }
 
-      console.log('SignOut: Successfully completed');
+      console.log('SignOut: Successfully completed, navigating to login');
+      router.replace('/auth/login');
     } catch (err: any) {
       console.error('SignOut: Exception caught:', err);
       if (err.message === 'Auth session missing!' || err.name === 'AuthSessionMissingError') {
-        console.log('SignOut: Session already cleared, proceeding');
+        console.log('SignOut: Session already cleared, proceeding with navigation');
+        router.replace('/auth/login');
         return;
       }
       throw err;
