@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { View, Text, StyleSheet, Modal, TouchableOpacity } from 'react-native';
 import { CheckCircle } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
@@ -15,17 +15,6 @@ export default function ContactSuccessModal({
   homeRoute,
 }: ContactSuccessModalProps) {
   const router = useRouter();
-
-  useEffect(() => {
-    if (visible) {
-      const timer = setTimeout(() => {
-        onClose();
-        router.push(homeRoute as any);
-      }, 2500);
-
-      return () => clearTimeout(timer);
-    }
-  }, [visible, onClose, router, homeRoute]);
 
   return (
     <Modal
