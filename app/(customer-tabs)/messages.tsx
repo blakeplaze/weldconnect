@@ -6,11 +6,12 @@ import {
   FlatList,
   TouchableOpacity,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { useRouter, useFocusEffect } from 'expo-router';
-import { MessageCircle } from 'lucide-react-native';
+import { MessageCircle, Trash2, CheckSquare, Square } from 'lucide-react-native';
 
 interface Conversation {
   id: string;
@@ -30,6 +31,8 @@ export default function MessagesScreen() {
   const router = useRouter();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedConversations, setSelectedConversations] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (userProfile?.id) {
@@ -125,6 +128,56 @@ export default function MessagesScreen() {
     }
   };
 
+  const toggleSelectionMode = () => {
+    setSelectionMode(!selectionMode);
+    setSelectedConversations(new Set());
+  };
+
+  const toggleConversationSelection = (id: string) => {
+    const newSelected = new Set(selectedConversations);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedConversations(newSelected);
+  };
+
+  const deleteSelectedConversations = async () => {
+    if (selectedConversations.size === 0) return;
+
+    Alert.alert(
+      'Delete Conversations',
+      `Are you sure you want to delete ${selectedConversations.size} conversation${selectedConversations.size > 1 ? 's' : ''}? This will also delete all messages in ${selectedConversations.size > 1 ? 'these conversations' : 'this conversation'}.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const { error } = await supabase
+                .from('conversations')
+                .delete()
+                .in('id', Array.from(selectedConversations));
+
+              if (error) throw error;
+
+              setConversations(
+                conversations.filter((c) => !selectedConversations.has(c.id))
+              );
+              setSelectedConversations(new Set());
+              setSelectionMode(false);
+            } catch (error) {
+              console.error('Error deleting conversations:', error);
+              Alert.alert('Error', 'Failed to delete conversations');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const formatTime = (timestamp: string) => {
     const date = new Date(timestamp);
     const now = new Date();
@@ -140,32 +193,54 @@ export default function MessagesScreen() {
     return date.toLocaleDateString();
   };
 
-  const renderConversation = ({ item }: { item: Conversation }) => (
-    <TouchableOpacity
-      style={styles.conversationItem}
-      onPress={() => router.push(`/chat/${item.id}`)}
-    >
-      <View style={styles.conversationContent}>
-        <View style={styles.conversationHeader}>
-          <Text style={styles.userName}>{item.other_user_name}</Text>
-          <Text style={styles.timeText}>{formatTime(item.last_message_at)}</Text>
-        </View>
-        <Text style={styles.jobTitle} numberOfLines={1}>
-          {item.job_title}
-        </Text>
-        <View style={styles.messagePreview}>
-          <Text style={styles.lastMessage} numberOfLines={1}>
-            {item.last_message || 'No messages yet'}
+  const renderConversation = ({ item }: { item: Conversation }) => {
+    const isSelected = selectedConversations.has(item.id);
+
+    return (
+      <TouchableOpacity
+        style={[
+          styles.conversationItem,
+          isSelected && styles.conversationItemSelected,
+        ]}
+        onPress={() => {
+          if (selectionMode) {
+            toggleConversationSelection(item.id);
+          } else {
+            router.push(`/chat/${item.id}`);
+          }
+        }}
+      >
+        {selectionMode && (
+          <View style={styles.checkboxContainer}>
+            {isSelected ? (
+              <CheckSquare size={24} color="#007AFF" />
+            ) : (
+              <Square size={24} color="#CCC" />
+            )}
+          </View>
+        )}
+        <View style={styles.conversationContent}>
+          <View style={styles.conversationHeader}>
+            <Text style={styles.userName}>{item.other_user_name}</Text>
+            <Text style={styles.timeText}>{formatTime(item.last_message_at)}</Text>
+          </View>
+          <Text style={styles.jobTitle} numberOfLines={1}>
+            {item.job_title}
           </Text>
-          {item.unread_count > 0 && (
-            <View style={styles.unreadBadge}>
-              <Text style={styles.unreadText}>{item.unread_count}</Text>
-            </View>
-          )}
+          <View style={styles.messagePreview}>
+            <Text style={styles.lastMessage} numberOfLines={1}>
+              {item.last_message || 'No messages yet'}
+            </Text>
+            {item.unread_count > 0 && (
+              <View style={styles.unreadBadge}>
+                <Text style={styles.unreadText}>{item.unread_count}</Text>
+              </View>
+            )}
+          </View>
         </View>
-      </View>
-    </TouchableOpacity>
-  );
+      </TouchableOpacity>
+    );
+  };
 
   if (loading) {
     return (
@@ -189,6 +264,29 @@ export default function MessagesScreen() {
 
   return (
     <View style={styles.container}>
+      {conversations.length > 0 && (
+        <View style={styles.headerContainer}>
+          <TouchableOpacity
+            style={styles.selectButton}
+            onPress={toggleSelectionMode}
+          >
+            <Text style={styles.selectButtonText}>
+              {selectionMode ? 'Cancel' : 'Select'}
+            </Text>
+          </TouchableOpacity>
+          {selectionMode && selectedConversations.size > 0 && (
+            <TouchableOpacity
+              style={styles.deleteButton}
+              onPress={deleteSelectedConversations}
+            >
+              <Trash2 size={20} color="#FFF" />
+              <Text style={styles.deleteButtonText}>
+                Delete ({selectedConversations.size})
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
       <FlatList
         data={conversations}
         renderItem={renderConversation}
@@ -211,6 +309,39 @@ const styles = StyleSheet.create({
     backgroundColor: '#F5F5F5',
     padding: 20,
   },
+  headerContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#FFF',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E5E5',
+  },
+  selectButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+  },
+  selectButtonText: {
+    fontSize: 16,
+    color: '#007AFF',
+    fontWeight: '500',
+  },
+  deleteButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FF3B30',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    gap: 6,
+  },
+  deleteButtonText: {
+    color: '#FFF',
+    fontSize: 15,
+    fontWeight: '600',
+  },
   listContainer: {
     padding: 0,
   },
@@ -219,6 +350,14 @@ const styles = StyleSheet.create({
     padding: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#E5E5E5',
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  conversationItemSelected: {
+    backgroundColor: '#F0F8FF',
+  },
+  checkboxContainer: {
+    marginRight: 12,
   },
   conversationContent: {
     flex: 1,
