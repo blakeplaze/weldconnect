@@ -361,6 +361,8 @@ export default function ChatScreen() {
           multiline
           maxLength={1000}
           editable={!sending}
+          onSubmitEditing={sendMessage}
+          blurOnSubmit={false}
         />
         <TouchableOpacity
           style={[styles.sendButton, sending && styles.sendButtonDisabled]}
