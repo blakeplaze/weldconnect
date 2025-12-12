@@ -14,6 +14,7 @@ import { supabase } from '@/lib/supabase';
 import { MapPin, DollarSign, Clock, CheckCircle, Award, MessageCircle, Star } from 'lucide-react-native';
 import JobAwardConfirmModal from '@/components/JobAwardConfirmModal';
 import JobAwardSuccessModal from '@/components/JobAwardSuccessModal';
+import ReviewModal from '@/components/ReviewModal';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface Job {
@@ -55,7 +56,10 @@ export default function JobDetails() {
   const [awarding, setAwarding] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showReviewModal, setShowReviewModal] = useState(false);
   const [winningBid, setWinningBid] = useState<{ businessName: string; amount: number } | undefined>();
+  const [hasReview, setHasReview] = useState(false);
+  const [winningBusiness, setWinningBusiness] = useState<{ id: string; name: string } | null>(null);
 
   useEffect(() => {
     loadJobDetails();
@@ -105,6 +109,27 @@ export default function JobDetails() {
       }));
 
       setBids(normalizedBids);
+
+      // Check if there's a winning bid and get business info
+      if (jobData.winning_bid_id) {
+        const winningBidData = normalizedBids.find(b => b.id === jobData.winning_bid_id);
+        if (winningBidData) {
+          setWinningBusiness({
+            id: winningBidData.business_id,
+            name: winningBidData.business.business_name,
+          });
+        }
+
+        // Check if customer has already left a review
+        const { data: reviewData } = await supabase
+          .from('reviews')
+          .select('id')
+          .eq('job_id', id)
+          .eq('customer_id', userProfile?.id)
+          .maybeSingle();
+
+        setHasReview(!!reviewData);
+      }
     } catch (err) {
       console.error('Error loading job details:', err);
       Alert.alert('Error', 'Failed to load job details');
@@ -211,6 +236,8 @@ export default function JobDetails() {
 
   const average = calculateAverage();
   const isAwarded = job.status === 'awarded';
+  const isCompleted = job.status === 'completed';
+  const isOpen = job.status === 'open';
 
   return (
     <ScrollView style={styles.container}>
@@ -219,12 +246,12 @@ export default function JobDetails() {
           <Text style={styles.backText}>← Back</Text>
         </TouchableOpacity>
         <View style={styles.statusContainer}>
-          {isAwarded ? (
+          {isCompleted || isAwarded ? (
             <CheckCircle size={20} color="#34C759" />
           ) : (
             <Clock size={20} color="#FF9500" />
           )}
-          <Text style={[styles.status, isAwarded && styles.statusAwarded, { marginLeft: 6 }]}>
+          <Text style={[styles.status, (isAwarded || isCompleted) && styles.statusAwarded, { marginLeft: 6 }]}>
             {job.status.toUpperCase()}
           </Text>
         </View>
@@ -323,7 +350,7 @@ export default function JobDetails() {
         )}
       </View>
 
-      {!isAwarded && bids.length > 0 && (
+      {isOpen && bids.length > 0 && (
         <View style={styles.card}>
           <TouchableOpacity
             style={styles.awardButton}
@@ -338,7 +365,19 @@ export default function JobDetails() {
         </View>
       )}
 
-      {isAwarded && job.address && (
+      {isCompleted && !hasReview && winningBusiness && (
+        <View style={styles.card}>
+          <TouchableOpacity
+            style={styles.reviewButton}
+            onPress={() => setShowReviewModal(true)}
+          >
+            <Star size={20} color="#fff" />
+            <Text style={[styles.reviewButtonText, { marginLeft: 8 }]}>Leave Review</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {(isAwarded || isCompleted) && job.address && (
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>Job Contact Details</Text>
           <Text style={styles.contactInfo}>
@@ -370,6 +409,18 @@ export default function JobDetails() {
         onClose={() => setShowSuccessModal(false)}
         winningBid={winningBid}
       />
+
+      {winningBusiness && userProfile?.id && (
+        <ReviewModal
+          visible={showReviewModal}
+          jobId={id as string}
+          businessId={winningBusiness.id}
+          businessName={winningBusiness.name}
+          customerId={userProfile.id}
+          onClose={() => setShowReviewModal(false)}
+          onSuccess={loadJobDetails}
+        />
+      )}
     </ScrollView>
   );
 }
@@ -587,6 +638,19 @@ const styles = StyleSheet.create({
     color: '#666',
     textAlign: 'center',
     marginTop: 8,
+  },
+  reviewButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFD700',
+    paddingVertical: 16,
+    borderRadius: 12,
+  },
+  reviewButtonText: {
+    color: '#000',
+    fontSize: 18,
+    fontWeight: '600',
   },
   contactInfo: {
     fontSize: 14,
