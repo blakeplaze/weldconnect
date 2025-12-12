@@ -6,7 +6,7 @@ import {
   FlatList,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
+  Modal,
 } from 'react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
@@ -33,6 +33,8 @@ export default function MessagesScreen() {
   const [loading, setLoading] = useState(true);
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedConversations, setSelectedConversations] = useState<Set<string>>(new Set());
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const loadConversations = useCallback(async () => {
     if (!userProfile?.id) return;
@@ -143,39 +145,32 @@ export default function MessagesScreen() {
     setSelectedConversations(newSelected);
   };
 
-  const deleteSelectedConversations = async () => {
+  const deleteSelectedConversations = () => {
     if (selectedConversations.size === 0) return;
+    setShowDeleteConfirm(true);
+  };
 
-    Alert.alert(
-      'Delete Conversations',
-      `Are you sure you want to delete ${selectedConversations.size} conversation${selectedConversations.size > 1 ? 's' : ''}? This will also delete all messages in ${selectedConversations.size > 1 ? 'these conversations' : 'this conversation'}.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              const { error } = await supabase
-                .from('conversations')
-                .delete()
-                .in('id', Array.from(selectedConversations));
+  const confirmDelete = async () => {
+    setIsDeleting(true);
+    try {
+      const { error } = await supabase
+        .from('conversations')
+        .delete()
+        .in('id', Array.from(selectedConversations));
 
-              if (error) throw error;
+      if (error) throw error;
 
-              setConversations(
-                conversations.filter((c) => !selectedConversations.has(c.id))
-              );
-              setSelectedConversations(new Set());
-              setSelectionMode(false);
-            } catch (error) {
-              console.error('Error deleting conversations:', error);
-              Alert.alert('Error', 'Failed to delete conversations');
-            }
-          },
-        },
-      ]
-    );
+      setConversations(
+        conversations.filter((c) => !selectedConversations.has(c.id))
+      );
+      setSelectedConversations(new Set());
+      setSelectionMode(false);
+      setShowDeleteConfirm(false);
+    } catch (error) {
+      console.error('Error deleting conversations:', error);
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const formatTime = (timestamp: string) => {
@@ -293,6 +288,42 @@ export default function MessagesScreen() {
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContainer}
       />
+
+      <Modal
+        visible={showDeleteConfirm}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowDeleteConfirm(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Delete Conversations</Text>
+            <Text style={styles.modalMessage}>
+              Are you sure you want to delete {selectedConversations.size} conversation{selectedConversations.size > 1 ? 's' : ''}? This will also delete all messages in {selectedConversations.size > 1 ? 'these conversations' : 'this conversation'}.
+            </Text>
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={styles.modalCancelButton}
+                onPress={() => setShowDeleteConfirm(false)}
+                disabled={isDeleting}
+              >
+                <Text style={styles.modalCancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.modalDeleteButton}
+                onPress={confirmDelete}
+                disabled={isDeleting}
+              >
+                {isDeleting ? (
+                  <ActivityIndicator size="small" color="#FFF" />
+                ) : (
+                  <Text style={styles.modalDeleteButtonText}>Delete</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -418,5 +449,61 @@ const styles = StyleSheet.create({
     color: '#999',
     marginTop: 8,
     textAlign: 'center',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: '#FFF',
+    borderRadius: 12,
+    padding: 24,
+    width: '100%',
+    maxWidth: 400,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#000',
+    marginBottom: 12,
+  },
+  modalMessage: {
+    fontSize: 16,
+    color: '#666',
+    lineHeight: 24,
+    marginBottom: 24,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  modalCancelButton: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    backgroundColor: '#F5F5F5',
+    alignItems: 'center',
+  },
+  modalCancelButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#666',
+  },
+  modalDeleteButton: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    backgroundColor: '#FF3B30',
+    alignItems: 'center',
+  },
+  modalDeleteButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFF',
   },
 });
