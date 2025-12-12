@@ -252,7 +252,11 @@ export default function WonJobs() {
 
           {isAwarded && (
             <TouchableOpacity
-              style={[styles.actionButton, styles.completeButton]}
+              style={[
+                styles.actionButton,
+                styles.completeButton,
+                completingJobId === item.job_id && styles.completeButtonDisabled
+              ]}
               onPress={() => handleMarkComplete(item)}
               disabled={completingJobId === item.job_id}
             >
@@ -519,6 +523,10 @@ const styles = StyleSheet.create({
   },
   completeButton: {
     backgroundColor: '#34C759',
+  },
+  completeButtonDisabled: {
+    backgroundColor: '#999',
+    opacity: 0.5,
   },
   completeButtonText: {
     fontSize: 16,
