@@ -11,7 +11,8 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { useRouter, useFocusEffect } from 'expo-router';
-import { Clock, CheckCircle, DollarSign } from 'lucide-react-native';
+import { Clock, CheckCircle, DollarSign, Star } from 'lucide-react-native';
+import ReviewModal from '@/components/ReviewModal';
 
 interface Job {
   id: string;
@@ -21,6 +22,11 @@ interface Job {
   status: string;
   created_at: string;
   bid_count?: number;
+  winning_bid_id?: string;
+  business_id?: string;
+  business_name?: string;
+  has_review?: boolean;
+  review_rating?: number;
 }
 
 export default function MyJobs() {
@@ -29,6 +35,8 @@ export default function MyJobs() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [reviewModalVisible, setReviewModalVisible] = useState(false);
+  const [selectedJob, setSelectedJob] = useState<Job | null>(null);
 
   const loadJobs = useCallback(async () => {
     if (!session?.user.id) {
@@ -38,24 +46,60 @@ export default function MyJobs() {
     try {
       const { data: jobsData, error } = await supabase
         .from('jobs')
-        .select('id, title, city, state, status, created_at')
+        .select('id, title, city, state, status, created_at, winning_bid_id')
         .eq('customer_id', session?.user.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
 
-      const jobsWithBids = await Promise.all(
+      const jobsWithDetails = await Promise.all(
         (jobsData || []).map(async (job) => {
           const { count } = await supabase
             .from('bids')
             .select('*', { count: 'exact', head: true })
             .eq('job_id', job.id);
 
-          return { ...job, bid_count: count || 0 };
+          let businessId = null;
+          let businessName = null;
+          let hasReview = false;
+          let reviewRating = null;
+
+          if (job.winning_bid_id) {
+            const { data: bidData } = await supabase
+              .from('bids')
+              .select('business_id, profiles!inner(full_name)')
+              .eq('id', job.winning_bid_id)
+              .maybeSingle();
+
+            if (bidData) {
+              businessId = bidData.business_id;
+              businessName = (bidData.profiles as any)?.full_name;
+
+              const { data: reviewData } = await supabase
+                .from('reviews')
+                .select('rating')
+                .eq('job_id', job.id)
+                .maybeSingle();
+
+              if (reviewData) {
+                hasReview = true;
+                reviewRating = reviewData.rating;
+              }
+            }
+          }
+
+          return {
+            ...job,
+            bid_count: count || 0,
+            business_id: businessId,
+            business_name: businessName,
+            has_review: hasReview,
+            review_rating: reviewRating,
+          };
         })
       );
 
-      setJobs(jobsWithBids);
+      setJobs(jobsWithDetails);
     } catch (err) {
       console.error('Error loading jobs:', err);
     } finally {
@@ -103,6 +147,11 @@ export default function MyJobs() {
     }
   };
 
+  const handleLeaveReview = (job: Job) => {
+    setSelectedJob(job);
+    setReviewModalVisible(true);
+  };
+
   const renderJob = ({ item }: { item: Job }) => (
     <TouchableOpacity
       style={styles.jobCard}
@@ -131,6 +180,37 @@ export default function MyJobs() {
           {new Date(item.created_at).toLocaleDateString()}
         </Text>
       </View>
+
+      {item.status === 'completed' && item.business_id && (
+        <View style={styles.reviewSection}>
+          {item.has_review ? (
+            <View style={styles.ratingDisplay}>
+              <Text style={styles.ratedText}>Your rating:</Text>
+              <View style={styles.starsRow}>
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <Star
+                    key={star}
+                    size={16}
+                    color={star <= (item.review_rating || 0) ? '#FFD700' : '#CCC'}
+                    fill={star <= (item.review_rating || 0) ? '#FFD700' : 'none'}
+                  />
+                ))}
+              </View>
+            </View>
+          ) : (
+            <TouchableOpacity
+              style={styles.reviewButton}
+              onPress={(e) => {
+                e.stopPropagation();
+                handleLeaveReview(item);
+              }}
+            >
+              <Star size={16} color="#007AFF" />
+              <Text style={styles.reviewButtonText}>Leave Review</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
     </TouchableOpacity>
   );
 
@@ -161,6 +241,23 @@ export default function MyJobs() {
           </View>
         }
       />
+
+      {selectedJob && (
+        <ReviewModal
+          visible={reviewModalVisible}
+          jobId={selectedJob.id}
+          businessId={selectedJob.business_id || ''}
+          businessName={selectedJob.business_name || ''}
+          customerId={session?.user.id || ''}
+          onClose={() => {
+            setReviewModalVisible(false);
+            setSelectedJob(null);
+          }}
+          onSuccess={() => {
+            loadJobs();
+          }}
+        />
+      )}
     </View>
   );
 }
@@ -247,5 +344,41 @@ const styles = StyleSheet.create({
   emptySubtext: {
     fontSize: 14,
     color: '#999',
+  },
+  reviewSection: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E5E5',
+  },
+  reviewButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    backgroundColor: '#F0F8FF',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#007AFF',
+  },
+  reviewButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#007AFF',
+  },
+  ratingDisplay: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  ratedText: {
+    fontSize: 14,
+    color: '#666',
+  },
+  starsRow: {
+    flexDirection: 'row',
+    gap: 2,
   },
 });

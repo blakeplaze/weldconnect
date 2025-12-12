@@ -15,9 +15,22 @@ import * as WebBrowser from 'expo-web-browser';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'expo-router';
-import { Building2, MapPin, Mail, Phone, LogOut, CheckCircle, Camera, Trophy, TrendingUp, DollarSign, Globe, Lock } from 'lucide-react-native';
+import { Building2, MapPin, Mail, Phone, LogOut, CheckCircle, Camera, Trophy, TrendingUp, DollarSign, Globe, Lock, Star } from 'lucide-react-native';
 import { geocodeCity } from '@/lib/geocoding';
 import { pickImage, updateProfilePicture } from '@/lib/uploadImage';
+
+interface Review {
+  id: string;
+  rating: number;
+  review_text: string;
+  created_at: string;
+  customer: {
+    full_name: string;
+  };
+  jobs: {
+    title: string;
+  };
+}
 
 interface Business {
   id: string;
@@ -45,6 +58,7 @@ export default function BusinessProfile() {
   const router = useRouter();
   const [business, setBusiness] = useState<Business | null>(null);
   const [stats, setStats] = useState<BusinessStats | null>(null);
+  const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [businessName, setBusinessName] = useState('');
@@ -102,6 +116,7 @@ export default function BusinessProfile() {
         setRadiusMiles(data.radius_miles || 25);
         setEditing(false);
         loadBusinessStats(data.id);
+        loadReviews(userId);
       } else {
         setEditing(true);
       }
@@ -109,6 +124,30 @@ export default function BusinessProfile() {
       console.error('Error loading business:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadReviews = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('reviews')
+        .select(`
+          id,
+          rating,
+          review_text,
+          created_at,
+          customer:profiles!reviews_customer_id_fkey(full_name),
+          jobs(title)
+        `)
+        .eq('business_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(10);
+
+      if (error) throw error;
+
+      setReviews(data as any || []);
+    } catch (err) {
+      console.error('Error loading reviews:', err);
     }
   };
 
@@ -400,6 +439,79 @@ export default function BusinessProfile() {
               <Text style={styles.statLabel}>Avg Bid Amount</Text>
             </View>
           </View>
+        </View>
+      )}
+
+      {business && !editing && userProfile && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Customer Reviews</Text>
+          {userProfile.review_count > 0 ? (
+            <>
+              <View style={styles.ratingSummary}>
+                <View style={styles.ratingScore}>
+                  <Text style={styles.ratingNumber}>
+                    {userProfile.average_rating?.toFixed(1) || '0.0'}
+                  </Text>
+                  <View style={styles.starsDisplay}>
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <Star
+                        key={star}
+                        size={20}
+                        color={star <= (userProfile.average_rating || 0) ? '#FFD700' : '#CCC'}
+                        fill={star <= (userProfile.average_rating || 0) ? '#FFD700' : 'none'}
+                      />
+                    ))}
+                  </View>
+                  <Text style={styles.reviewCount}>
+                    Based on {userProfile.review_count} {userProfile.review_count === 1 ? 'review' : 'reviews'}
+                  </Text>
+                </View>
+              </View>
+
+              {reviews.length > 0 && (
+                <View style={styles.reviewsList}>
+                  {reviews.map((review) => (
+                    <View key={review.id} style={styles.reviewCard}>
+                      <View style={styles.reviewHeader}>
+                        <View>
+                          <Text style={styles.reviewerName}>
+                            {(review.customer as any)?.full_name || 'Anonymous'}
+                          </Text>
+                          <Text style={styles.reviewJobTitle}>
+                            Job: {(review.jobs as any)?.title || 'Unknown'}
+                          </Text>
+                        </View>
+                        <View style={styles.reviewStars}>
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <Star
+                              key={star}
+                              size={14}
+                              color={star <= review.rating ? '#FFD700' : '#CCC'}
+                              fill={star <= review.rating ? '#FFD700' : 'none'}
+                            />
+                          ))}
+                        </View>
+                      </View>
+                      {review.review_text && (
+                        <Text style={styles.reviewText}>{review.review_text}</Text>
+                      )}
+                      <Text style={styles.reviewDate}>
+                        {new Date(review.created_at).toLocaleDateString()}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              )}
+            </>
+          ) : (
+            <View style={styles.noReviewsCard}>
+              <Star size={48} color="#CCC" />
+              <Text style={styles.noReviewsText}>No reviews yet</Text>
+              <Text style={styles.noReviewsSubtext}>
+                Complete jobs to receive customer reviews
+              </Text>
+            </View>
+          )}
         </View>
       )}
 
@@ -1015,5 +1127,82 @@ const styles = StyleSheet.create({
     color: '#666',
     fontSize: 16,
     fontWeight: '600',
+  },
+  ratingSummary: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 24,
+    marginBottom: 16,
+  },
+  ratingScore: {
+    alignItems: 'center',
+    gap: 12,
+  },
+  ratingNumber: {
+    fontSize: 48,
+    fontWeight: '700',
+    color: '#1a1a1a',
+  },
+  starsDisplay: {
+    flexDirection: 'row',
+    gap: 4,
+  },
+  reviewCount: {
+    fontSize: 14,
+    color: '#666',
+  },
+  reviewsList: {
+    gap: 12,
+  },
+  reviewCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    gap: 12,
+  },
+  reviewHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  reviewerName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1a1a1a',
+  },
+  reviewJobTitle: {
+    fontSize: 13,
+    color: '#666',
+    marginTop: 2,
+  },
+  reviewStars: {
+    flexDirection: 'row',
+    gap: 2,
+  },
+  reviewText: {
+    fontSize: 15,
+    color: '#333',
+    lineHeight: 22,
+  },
+  reviewDate: {
+    fontSize: 12,
+    color: '#999',
+  },
+  noReviewsCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 48,
+    alignItems: 'center',
+    gap: 12,
+  },
+  noReviewsText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#666',
+  },
+  noReviewsSubtext: {
+    fontSize: 14,
+    color: '#999',
+    textAlign: 'center',
   },
 });

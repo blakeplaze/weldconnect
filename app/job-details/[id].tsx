@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
-import { MapPin, DollarSign, Clock, CheckCircle, Award, MessageCircle } from 'lucide-react-native';
+import { MapPin, DollarSign, Clock, CheckCircle, Award, MessageCircle, Star } from 'lucide-react-native';
 import JobAwardConfirmModal from '@/components/JobAwardConfirmModal';
 import JobAwardSuccessModal from '@/components/JobAwardSuccessModal';
 import { useAuth } from '@/contexts/AuthContext';
@@ -41,6 +41,8 @@ interface Bid {
     business_name: string;
     owner_id: string;
   };
+  average_rating?: number;
+  review_count?: number;
 }
 
 export default function JobDetails() {
@@ -87,9 +89,19 @@ export default function JobDetails() {
 
       if (bidsError) throw bidsError;
 
-      const normalizedBids = (bidsData || []).map((bid: any) => ({
-        ...bid,
-        business: Array.isArray(bid.business) ? bid.business[0] : bid.business,
+      const normalizedBids = await Promise.all((bidsData || []).map(async (bid: any) => {
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('average_rating, review_count')
+          .eq('id', Array.isArray(bid.business) ? bid.business[0].owner_id : bid.business.owner_id)
+          .maybeSingle();
+
+        return {
+          ...bid,
+          business: Array.isArray(bid.business) ? bid.business[0] : bid.business,
+          average_rating: profileData?.average_rating || 0,
+          review_count: profileData?.review_count || 0,
+        };
       }));
 
       setBids(normalizedBids);
@@ -264,7 +276,26 @@ export default function JobDetails() {
                 ]}
               >
                 <View style={styles.bidHeader}>
-                  <Text style={styles.businessName}>{bid.business.business_name}</Text>
+                  <View style={styles.businessInfo}>
+                    <Text style={styles.businessName}>{bid.business.business_name}</Text>
+                    {bid.review_count > 0 && (
+                      <View style={styles.ratingRow}>
+                        <View style={styles.starsContainer}>
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <Star
+                              key={star}
+                              size={12}
+                              color={star <= (bid.average_rating || 0) ? '#FFD700' : '#CCC'}
+                              fill={star <= (bid.average_rating || 0) ? '#FFD700' : 'none'}
+                            />
+                          ))}
+                        </View>
+                        <Text style={styles.ratingText}>
+                          {bid.average_rating?.toFixed(1)} ({bid.review_count})
+                        </Text>
+                      </View>
+                    )}
+                  </View>
                   <View style={styles.bidAmountContainer}>
                     <DollarSign size={16} color="#007AFF" />
                     <Text style={[styles.bidAmount, { marginLeft: 4 }]}>${bid.amount.toFixed(2)}</Text>
@@ -472,11 +503,28 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 4,
   },
+  businessInfo: {
+    flex: 1,
+    gap: 4,
+  },
   businessName: {
     fontSize: 16,
     fontWeight: '600',
     color: '#1a1a1a',
-    flex: 1,
+  },
+  ratingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  starsContainer: {
+    flexDirection: 'row',
+    gap: 1,
+  },
+  ratingText: {
+    fontSize: 12,
+    color: '#666',
+    fontWeight: '500',
   },
   bidAmountContainer: {
     flexDirection: 'row',
