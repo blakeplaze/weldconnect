@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, ActivityIndicator, Alert, TextInput } from 'react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'expo-router';
-import { User, Phone, Mail, LogOut, Camera, DollarSign, Briefcase } from 'lucide-react-native';
+import { User, Phone, Mail, LogOut, Camera, DollarSign, Briefcase, Lock } from 'lucide-react-native';
 import { pickImage, updateProfilePicture } from '@/lib/uploadImage';
 import { supabase } from '@/lib/supabase';
 
@@ -17,6 +17,11 @@ export default function Profile() {
   const [uploadingImage, setUploadingImage] = useState(false);
   const [stats, setStats] = useState<CustomerStats | null>(null);
   const [loadingStats, setLoadingStats] = useState(true);
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [updatingPassword, setUpdatingPassword] = useState(false);
 
   useEffect(() => {
     if (session?.user.id) {
@@ -80,6 +85,43 @@ export default function Profile() {
       Alert.alert('Error', error.message || 'Failed to upload profile picture');
     } finally {
       setUploadingImage(false);
+    }
+  };
+
+  const handleChangePassword = async () => {
+    if (!newPassword || !confirmPassword) {
+      Alert.alert('Error', 'Please fill in all fields');
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      Alert.alert('Error', 'Password must be at least 6 characters');
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      Alert.alert('Error', 'Passwords do not match');
+      return;
+    }
+
+    setUpdatingPassword(true);
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+
+      if (error) throw error;
+
+      Alert.alert('Success', 'Password updated successfully');
+      setChangingPassword(false);
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (error: any) {
+      console.error('Error updating password:', error);
+      Alert.alert('Error', error.message || 'Failed to update password');
+    } finally {
+      setUpdatingPassword(false);
     }
   };
 
@@ -167,6 +209,75 @@ export default function Profile() {
             </View>
           )}
         </View>
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Security</Text>
+
+        {!changingPassword ? (
+          <TouchableOpacity
+            style={styles.changePasswordButton}
+            onPress={() => setChangingPassword(true)}
+          >
+            <Lock size={20} color="#007AFF" />
+            <Text style={styles.changePasswordText}>Change Password</Text>
+          </TouchableOpacity>
+        ) : (
+          <View style={styles.passwordForm}>
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>New Password</Text>
+              <TextInput
+                style={styles.input}
+                value={newPassword}
+                onChangeText={setNewPassword}
+                placeholder="Enter new password"
+                placeholderTextColor="#999"
+                secureTextEntry
+                editable={!updatingPassword}
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Confirm Password</Text>
+              <TextInput
+                style={styles.input}
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+                placeholder="Confirm new password"
+                placeholderTextColor="#999"
+                secureTextEntry
+                editable={!updatingPassword}
+              />
+            </View>
+
+            <View style={styles.passwordActions}>
+              <TouchableOpacity
+                style={[styles.passwordButton, styles.savePasswordButton]}
+                onPress={handleChangePassword}
+                disabled={updatingPassword}
+              >
+                {updatingPassword ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.savePasswordButtonText}>Update Password</Text>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.passwordButton, styles.cancelPasswordButton]}
+                onPress={() => {
+                  setChangingPassword(false);
+                  setCurrentPassword('');
+                  setNewPassword('');
+                  setConfirmPassword('');
+                }}
+                disabled={updatingPassword}
+              >
+                <Text style={styles.cancelPasswordButtonText}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
       </View>
 
       <View style={styles.section}>
@@ -308,5 +419,72 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#666',
     textAlign: 'center',
+  },
+  changePasswordButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#fff',
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#007AFF',
+  },
+  changePasswordText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#007AFF',
+  },
+  passwordForm: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    gap: 16,
+  },
+  inputGroup: {
+    gap: 8,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: '#1f2937',
+    backgroundColor: '#fff',
+  },
+  passwordActions: {
+    gap: 12,
+    marginTop: 8,
+  },
+  passwordButton: {
+    paddingVertical: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  savePasswordButton: {
+    backgroundColor: '#007AFF',
+  },
+  savePasswordButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  cancelPasswordButton: {
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+  },
+  cancelPasswordButtonText: {
+    color: '#666',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
