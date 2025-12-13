@@ -189,11 +189,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log('SignOut: Auth session missing, but thats ok');
       }
 
+      console.log('SignOut: Clearing local state');
+      setSession(null);
+      setUserProfile(null);
+
+      console.log('SignOut: Redirecting to login');
+      router.replace('/auth/login');
+
       console.log('SignOut: Successfully completed');
     } catch (err: any) {
       console.error('SignOut: Exception caught:', err);
       if (err.message === 'Auth session missing!' || err.name === 'AuthSessionMissingError') {
         console.log('SignOut: Session already cleared');
+        setSession(null);
+        setUserProfile(null);
+        router.replace('/auth/login');
         return;
       }
       throw err;
