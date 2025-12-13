@@ -41,8 +41,11 @@ export default function Login() {
 
     setLoading(true);
     try {
+      console.log('Login: Attempting sign in');
       await signIn(email, password);
+      console.log('Login: Sign in successful');
     } catch (err: any) {
+      console.error('Login: Sign in failed:', err);
       setError(err.message || 'Failed to sign in');
       setLoading(false);
     }

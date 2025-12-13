@@ -167,12 +167,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
+    console.log('AuthContext: signIn called');
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
 
-    if (error) throw error;
+    if (error) {
+      console.error('AuthContext: signIn error:', error);
+      throw error;
+    }
+
+    console.log('AuthContext: signIn successful, user:', data.user?.id);
+
+    if (data.session) {
+      console.log('AuthContext: Setting session from signIn');
+      setSession(data.session);
+      await loadUserProfile(data.user.id);
+    }
   };
 
   const signOut = async () => {
