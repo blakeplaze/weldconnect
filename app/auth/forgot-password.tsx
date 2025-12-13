@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   View,
   Text,
@@ -12,41 +12,37 @@ import {
   Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/lib/supabase';
 
-export default function Login() {
+export default function ForgotPassword() {
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
-  const { signIn, session, userProfile } = useAuth();
   const router = useRouter();
 
-  useEffect(() => {
-    if (session && userProfile) {
-      if (userProfile.user_type === 'business') {
-        router.replace('/(business-tabs)');
-      } else {
-        router.replace('/(customer-tabs)');
-      }
-    }
-  }, [session, userProfile]);
-
-  const handleLogin = async () => {
+  const handleResetPassword = async () => {
     setError('');
-    if (!email || !password) {
-      setError('Please fill in all fields');
+    setSuccess(false);
+
+    if (!email) {
+      setError('Please enter your email address');
       return;
     }
 
     setLoading(true);
     try {
-      console.log('Login: Attempting sign in');
-      await signIn(email, password);
-      console.log('Login: Sign in successful');
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: 'exp://localhost:8081/--/auth/reset-password',
+      });
+
+      if (error) throw error;
+
+      setSuccess(true);
     } catch (err: any) {
-      console.error('Login: Sign in failed:', err);
-      setError(err.message || 'Failed to sign in');
+      console.error('Password reset error:', err);
+      setError(err.message || 'Failed to send reset email');
+    } finally {
       setLoading(false);
     }
   };
@@ -66,12 +62,23 @@ export default function Login() {
             style={styles.logo}
             resizeMode="contain"
           />
-          <Text style={styles.subtitle}>Mobile Welding Network</Text>
+          <Text style={styles.subtitle}>Reset Your Password</Text>
         </View>
 
         {error ? <Text style={styles.error}>{error}</Text> : null}
+        {success ? (
+          <View style={styles.successContainer}>
+            <Text style={styles.successText}>
+              Password reset email sent! Check your inbox for instructions.
+            </Text>
+          </View>
+        ) : null}
 
         <View style={styles.form}>
+          <Text style={styles.description}>
+            Enter your email address and we'll send you a link to reset your password.
+          </Text>
+
           <TextInput
             style={styles.input}
             placeholder="Email"
@@ -79,42 +86,27 @@ export default function Login() {
             onChangeText={setEmail}
             autoCapitalize="none"
             keyboardType="email-address"
-            editable={!loading}
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Password"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            editable={!loading}
+            editable={!loading && !success}
           />
 
           <TouchableOpacity
-            style={[styles.button, loading && styles.buttonDisabled]}
-            onPress={handleLogin}
-            disabled={loading}
+            style={[styles.button, (loading || success) && styles.buttonDisabled]}
+            onPress={handleResetPassword}
+            disabled={loading || success}
           >
             {loading ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <Text style={styles.buttonText}>Sign In</Text>
+              <Text style={styles.buttonText}>Send Reset Link</Text>
             )}
           </TouchableOpacity>
 
           <TouchableOpacity
-            onPress={() => router.push('/auth/forgot-password')}
-            disabled={loading}
-          >
-            <Text style={styles.linkText}>Forgot Password?</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            onPress={() => router.push('/auth/signup')}
+            onPress={() => router.back()}
             disabled={loading}
           >
             <Text style={styles.linkText}>
-              Don't have an account? Sign Up
+              Back to Sign In
             </Text>
           </TouchableOpacity>
         </View>
@@ -150,6 +142,13 @@ const styles = StyleSheet.create({
   },
   form: {
     gap: 16,
+  },
+  description: {
+    fontSize: 15,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 8,
+    lineHeight: 22,
   },
   input: {
     backgroundColor: '#f8f8f8',
@@ -188,5 +187,17 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginBottom: 16,
     textAlign: 'center',
+  },
+  successContainer: {
+    backgroundColor: '#e8f5e9',
+    padding: 16,
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  successText: {
+    color: '#2e7d32',
+    textAlign: 'center',
+    fontSize: 15,
+    lineHeight: 22,
   },
 });

@@ -12,41 +12,51 @@ import {
   Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/lib/supabase';
 
-export default function Login() {
-  const [email, setEmail] = useState('');
+export default function ResetPassword() {
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
-  const { signIn, session, userProfile } = useAuth();
   const router = useRouter();
 
-  useEffect(() => {
-    if (session && userProfile) {
-      if (userProfile.user_type === 'business') {
-        router.replace('/(business-tabs)');
-      } else {
-        router.replace('/(customer-tabs)');
-      }
-    }
-  }, [session, userProfile]);
-
-  const handleLogin = async () => {
+  const handleUpdatePassword = async () => {
     setError('');
-    if (!email || !password) {
+    setSuccess(false);
+
+    if (!password || !confirmPassword) {
       setError('Please fill in all fields');
+      return;
+    }
+
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setError('Passwords do not match');
       return;
     }
 
     setLoading(true);
     try {
-      console.log('Login: Attempting sign in');
-      await signIn(email, password);
-      console.log('Login: Sign in successful');
+      const { error } = await supabase.auth.updateUser({
+        password: password,
+      });
+
+      if (error) throw error;
+
+      setSuccess(true);
+      setTimeout(() => {
+        router.replace('/auth/login');
+      }, 2000);
     } catch (err: any) {
-      console.error('Login: Sign in failed:', err);
-      setError(err.message || 'Failed to sign in');
+      console.error('Password update error:', err);
+      setError(err.message || 'Failed to update password');
+    } finally {
       setLoading(false);
     }
   };
@@ -66,56 +76,51 @@ export default function Login() {
             style={styles.logo}
             resizeMode="contain"
           />
-          <Text style={styles.subtitle}>Mobile Welding Network</Text>
+          <Text style={styles.subtitle}>Create New Password</Text>
         </View>
 
         {error ? <Text style={styles.error}>{error}</Text> : null}
+        {success ? (
+          <View style={styles.successContainer}>
+            <Text style={styles.successText}>
+              Password updated successfully! Redirecting to login...
+            </Text>
+          </View>
+        ) : null}
 
         <View style={styles.form}>
+          <Text style={styles.description}>
+            Enter your new password below.
+          </Text>
+
           <TextInput
             style={styles.input}
-            placeholder="Email"
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            keyboardType="email-address"
-            editable={!loading}
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Password"
+            placeholder="New Password"
             value={password}
             onChangeText={setPassword}
             secureTextEntry
-            editable={!loading}
+            editable={!loading && !success}
+          />
+
+          <TextInput
+            style={styles.input}
+            placeholder="Confirm New Password"
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+            secureTextEntry
+            editable={!loading && !success}
           />
 
           <TouchableOpacity
-            style={[styles.button, loading && styles.buttonDisabled]}
-            onPress={handleLogin}
-            disabled={loading}
+            style={[styles.button, (loading || success) && styles.buttonDisabled]}
+            onPress={handleUpdatePassword}
+            disabled={loading || success}
           >
             {loading ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <Text style={styles.buttonText}>Sign In</Text>
+              <Text style={styles.buttonText}>Update Password</Text>
             )}
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            onPress={() => router.push('/auth/forgot-password')}
-            disabled={loading}
-          >
-            <Text style={styles.linkText}>Forgot Password?</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            onPress={() => router.push('/auth/signup')}
-            disabled={loading}
-          >
-            <Text style={styles.linkText}>
-              Don't have an account? Sign Up
-            </Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -151,6 +156,13 @@ const styles = StyleSheet.create({
   form: {
     gap: 16,
   },
+  description: {
+    fontSize: 15,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 8,
+    lineHeight: 22,
+  },
   input: {
     backgroundColor: '#f8f8f8',
     paddingHorizontal: 16,
@@ -175,12 +187,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
   },
-  linkText: {
-    color: '#007AFF',
-    textAlign: 'center',
-    fontSize: 16,
-    marginTop: 8,
-  },
   error: {
     backgroundColor: '#ffebee',
     color: '#c62828',
@@ -188,5 +194,17 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginBottom: 16,
     textAlign: 'center',
+  },
+  successContainer: {
+    backgroundColor: '#e8f5e9',
+    padding: 16,
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  successText: {
+    color: '#2e7d32',
+    textAlign: 'center',
+    fontSize: 15,
+    lineHeight: 22,
   },
 });
