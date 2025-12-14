@@ -4,7 +4,10 @@ import { StatusBar } from 'expo-status-bar';
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { useNotifications } from '@/hooks/useNotifications';
+<<<<<<< HEAD
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+=======
+>>>>>>> 79fb8c9f9b70f413c4fced27192deaabf900ebd5
 
 function RootLayoutContent() {
   useNotifications();
@@ -31,10 +34,16 @@ export default function RootLayout() {
   useFrameworkReady();
 
   return (
+<<<<<<< HEAD
     <ErrorBoundary>
       <AuthProvider>
         <RootLayoutContent />
       </AuthProvider>
     </ErrorBoundary>
+=======
+    <AuthProvider>
+      <RootLayoutContent />
+    </AuthProvider>
+>>>>>>> 79fb8c9f9b70f413c4fced27192deaabf900ebd5
   );
 }
