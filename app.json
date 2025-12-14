@@ -1,14 +1,8 @@
 {
   "expo": {
-<<<<<<< HEAD
-    "name": "WeldConnect",
-    "slug": "weldconnect",
-    "version": "1.0.1",
-=======
     "name": "WeldConnect - Mobile Welding Network",
     "slug": "weldconnect",
-    "version": "1.0.0",
->>>>>>> 79fb8c9f9b70f413c4fced27192deaabf900ebd5
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "myapp",
@@ -18,10 +12,7 @@
       "supportsTablet": true
     },
     "android": {
-<<<<<<< HEAD
       "package": "fast.weldingservice",
-=======
->>>>>>> 79fb8c9f9b70f413c4fced27192deaabf900ebd5
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/icon.png",
         "backgroundColor": "#ffffff"
@@ -51,15 +42,12 @@
     ],
     "experiments": {
       "typedRoutes": true
-<<<<<<< HEAD
     },
     "extra": {
       "router": {},
       "eas": {
         "projectId": "220fa6ec-9809-40bc-bd1c-8b6a6f7afe74"
       }
-=======
->>>>>>> 79fb8c9f9b70f413c4fced27192deaabf900ebd5
     }
   }
 }
