@@ -37,7 +37,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const initAuth = async () => {
       try {
-<<<<<<< HEAD
         const { data: { session }, error } = await supabase.auth.getSession();
         if (!mounted) return;
 
@@ -50,11 +49,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return;
         }
 
-=======
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!mounted) return;
-
->>>>>>> 79fb8c9f9b70f413c4fced27192deaabf900ebd5
         setSession(session);
         if (session) {
           await loadUserProfile(session.user.id);
@@ -81,7 +75,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     initAuth();
 
-<<<<<<< HEAD
     let subscription: { unsubscribe: () => void } | null = null;
     try {
       const { data } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -113,32 +106,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       console.error('Error setting up auth state change listener:', error);
     }
-=======
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!mounted || !initialized) return;
-
-      console.log('Auth state changed:', _event, 'session:', !!session);
-
-      if (_event === 'SIGNED_OUT' || _event === 'USER_DELETED') {
-        setSession(null);
-        setUserProfile(null);
-        setLoading(false);
-        return;
-      }
-
-      if (_event === 'SIGNED_IN' || _event === 'TOKEN_REFRESHED') {
-        setSession(session);
-        (async () => {
-          await loadUserProfile(session.user.id);
-        })();
-      }
-    });
->>>>>>> 79fb8c9f9b70f413c4fced27192deaabf900ebd5
 
     return () => {
       mounted = false;
       clearTimeout(timeoutId);
-<<<<<<< HEAD
       if (subscription) {
         try {
           subscription.unsubscribe();
@@ -146,9 +117,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           console.error('Error unsubscribing from auth state change:', error);
         }
       }
-=======
-      subscription.unsubscribe();
->>>>>>> 79fb8c9f9b70f413c4fced27192deaabf900ebd5
     };
   }, []);
 
@@ -226,19 +194,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signIn = async (email: string, password: string) => {
-<<<<<<< HEAD
-    const { error } = await supabase.auth.signInWithPassword({
-=======
     console.log('AuthContext: signIn called');
     const { data, error } = await supabase.auth.signInWithPassword({
->>>>>>> 79fb8c9f9b70f413c4fced27192deaabf900ebd5
       email,
       password,
     });
 
-<<<<<<< HEAD
-    if (error) throw error;
-=======
     if (error) {
       console.error('AuthContext: signIn error:', error);
       throw error;
@@ -251,7 +212,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setSession(data.session);
       await loadUserProfile(data.user.id);
     }
->>>>>>> 79fb8c9f9b70f413c4fced27192deaabf900ebd5
   };
 
   const signOut = async () => {
@@ -268,8 +228,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log('SignOut: Auth session missing, but thats ok');
       }
 
-<<<<<<< HEAD
-=======
       console.log('SignOut: Clearing local state');
       setSession(null);
       setUserProfile(null);
@@ -277,18 +235,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.log('SignOut: Redirecting to login');
       router.replace('/auth/login');
 
->>>>>>> 79fb8c9f9b70f413c4fced27192deaabf900ebd5
       console.log('SignOut: Successfully completed');
     } catch (err: any) {
       console.error('SignOut: Exception caught:', err);
       if (err.message === 'Auth session missing!' || err.name === 'AuthSessionMissingError') {
         console.log('SignOut: Session already cleared');
-<<<<<<< HEAD
-=======
         setSession(null);
         setUserProfile(null);
         router.replace('/auth/login');
->>>>>>> 79fb8c9f9b70f413c4fced27192deaabf900ebd5
         return;
       }
       throw err;

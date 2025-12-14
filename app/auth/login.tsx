@@ -41,16 +41,11 @@ export default function Login() {
 
     setLoading(true);
     try {
-<<<<<<< HEAD
-      await signIn(email, password);
-    } catch (err: any) {
-=======
       console.log('Login: Attempting sign in');
       await signIn(email, password);
       console.log('Login: Sign in successful');
     } catch (err: any) {
       console.error('Login: Sign in failed:', err);
->>>>>>> 79fb8c9f9b70f413c4fced27192deaabf900ebd5
       setError(err.message || 'Failed to sign in');
       setLoading(false);
     }
@@ -108,8 +103,6 @@ export default function Login() {
           </TouchableOpacity>
 
           <TouchableOpacity
-<<<<<<< HEAD
-=======
             onPress={() => router.push('/auth/forgot-password')}
             disabled={loading}
           >
@@ -117,7 +110,6 @@ export default function Login() {
           </TouchableOpacity>
 
           <TouchableOpacity
->>>>>>> 79fb8c9f9b70f413c4fced27192deaabf900ebd5
             onPress={() => router.push('/auth/signup')}
             disabled={loading}
           >
