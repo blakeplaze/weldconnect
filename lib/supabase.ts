@@ -18,32 +18,32 @@ if (!supabaseUrl || !supabaseAnonKey) {
 }
 
 const ExpoSecureStoreAdapter = {
-  getItem: (key: string) => {
+  getItem: async (key: string) => {
     if (Platform.OS === 'web') {
       if (typeof localStorage === 'undefined') {
         return null;
       }
       return localStorage.getItem(key);
     }
-    return SecureStore.getItemAsync(key);
+    return await SecureStore.getItemAsync(key);
   },
-  setItem: (key: string, value: string) => {
+  setItem: async (key: string, value: string) => {
     if (Platform.OS === 'web') {
       if (typeof localStorage !== 'undefined') {
         localStorage.setItem(key, value);
       }
       return;
     }
-    SecureStore.setItemAsync(key, value);
+    await SecureStore.setItemAsync(key, value);
   },
-  removeItem: (key: string) => {
+  removeItem: async (key: string) => {
     if (Platform.OS === 'web') {
       if (typeof localStorage !== 'undefined') {
         localStorage.removeItem(key);
       }
       return;
     }
-    SecureStore.deleteItemAsync(key);
+    await SecureStore.deleteItemAsync(key);
   },
 };
 
