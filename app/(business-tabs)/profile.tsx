@@ -259,9 +259,6 @@ export default function BusinessProfile() {
       }
 
       const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
-<<<<<<< HEAD
-      const baseUrl = Platform.OS === 'web' ? window.location.origin : 'myapp://';
-=======
 
       let baseUrl = 'myapp://';
       if (Platform.OS === 'web') {
@@ -269,7 +266,6 @@ export default function BusinessProfile() {
         const isLocalhost = origin.includes('localhost') || origin.includes('127.0.0.1');
         baseUrl = isLocalhost ? origin : origin.replace(/^http:/, 'https:');
       }
->>>>>>> 79fb8c9f9b70f413c4fced27192deaabf900ebd5
 
       const response = await fetch(`${supabaseUrl}/functions/v1/stripe-checkout`, {
         method: 'POST',
