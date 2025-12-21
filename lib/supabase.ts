@@ -6,10 +6,17 @@ import { Platform } from 'react-native';
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
+console.log('Supabase: Initializing client');
+console.log('Supabase: URL present:', !!supabaseUrl);
+console.log('Supabase: Key present:', !!supabaseAnonKey);
+console.log('Supabase: URL value:', supabaseUrl);
+
 if (!supabaseUrl || !supabaseAnonKey) {
   const missingVars = [];
   if (!supabaseUrl) missingVars.push('EXPO_PUBLIC_SUPABASE_URL');
   if (!supabaseAnonKey) missingVars.push('EXPO_PUBLIC_SUPABASE_ANON_KEY');
+
+  console.error('Supabase: Missing environment variables:', missingVars);
 
   throw new Error(
     `Missing required Supabase environment variables: ${missingVars.join(', ')}\n` +
@@ -99,6 +106,6 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     storage: ExpoSecureStoreAdapter as any,
     autoRefreshToken: true,
     persistSession: true,
-    detectSessionInUrl: false,
+    detectSessionInUrl: Platform.OS === 'web',
   },
 });

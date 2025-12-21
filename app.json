@@ -8,8 +8,37 @@
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "description": "WeldConnect is the premier mobile welding services marketplace connecting customers with certified professional welders and metal fabrication specialists. Find portable welding, on-site welding services, emergency welding repairs, custom metal fabrication, steel fabrication, and industrial welding services near you. Post welding jobs, receive competitive bids from local welding contractors, and hire the best welder for your project - all in one easy-to-use platform.",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "fast.weldingservice",
+      "keywords": [
+        "welding",
+        "welding services",
+        "mobile welder",
+        "portable welding",
+        "welder near me",
+        "metal fabrication",
+        "steel fabrication",
+        "on-site welding",
+        "emergency welding",
+        "welding contractor",
+        "welding jobs",
+        "metal work",
+        "fabrication services",
+        "professional welder",
+        "welding quotes",
+        "welding bids",
+        "hire welder",
+        "custom fabrication",
+        "industrial welding",
+        "mobile welding",
+        "welding repair",
+        "certified welder",
+        "local welder",
+        "welding marketplace",
+        "metal repair"
+      ]
     },
     "android": {
       "package": "fast.weldingservice",
@@ -53,8 +82,8 @@
       "eas": {
         "projectId": "220fa6ec-9809-40bc-bd1c-8b6a6f7afe74"
       },
-      "EXPO_PUBLIC_SUPABASE_URL": "https://wdzvtsixyefyidflxlqj.supabase.co",
-      "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndkenZ0c2l4eWVmeWlkZmx4bHFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU0NzY5MTAsImV4cCI6MjA4MTA1MjkxMH0.UXZiKldb1x0-Jf75VXjrs8wakbZrSmWISs-fl5x_LsI"
+      "EXPO_PUBLIC_SUPABASE_URL": "https://fydoqyuttiodmrlfsuxk.supabase.co",
+      "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5ZG9xeXV0dGlvZG1ybGZzdXhrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU0NzQxOTMsImV4cCI6MjA4MTA1MDE5M30.og6llNq54X1LUl05usWWU0OHjgTo_TjOxrVzyUaHkm4"
     }
   }
 }

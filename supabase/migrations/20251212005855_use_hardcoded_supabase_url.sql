@@ -16,7 +16,7 @@ CREATE OR REPLACE FUNCTION notify_businesses_of_new_job()
 RETURNS TRIGGER AS $$
 DECLARE
   business_record RECORD;
-  notification_url text := 'https://wdzvtsixyefyidflxlqj.supabase.co/functions/v1/send-notification';
+  notification_url text := 'https://fydoqyuttiodmrlfsuxk.supabase.co/functions/v1/send-notification';
 BEGIN
   FOR business_record IN
     SELECT DISTINCT b.owner_id, b.business_name
@@ -58,7 +58,7 @@ RETURNS TRIGGER AS $$
 DECLARE
   job_record RECORD;
   business_record RECORD;
-  notification_url text := 'https://wdzvtsixyefyidflxlqj.supabase.co/functions/v1/send-notification';
+  notification_url text := 'https://fydoqyuttiodmrlfsuxk.supabase.co/functions/v1/send-notification';
 BEGIN
   SELECT customer_id, title INTO job_record
   FROM jobs
@@ -94,7 +94,7 @@ CREATE OR REPLACE FUNCTION notify_business_of_job_award()
 RETURNS TRIGGER AS $$
 DECLARE
   bid_record RECORD;
-  notification_url text := 'https://wdzvtsixyefyidflxlqj.supabase.co/functions/v1/send-notification';
+  notification_url text := 'https://fydoqyuttiodmrlfsuxk.supabase.co/functions/v1/send-notification';
 BEGIN
   IF NEW.winning_bid_id IS NOT NULL AND (OLD.winning_bid_id IS NULL OR OLD.winning_bid_id != NEW.winning_bid_id) THEN
     SELECT b.business_id, bus.owner_id, bus.business_name
