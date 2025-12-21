@@ -3,28 +3,10 @@ import { Home, Plus, List, User, MessageCircle, HelpCircle } from 'lucide-react-
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
-import { useState, useEffect } from 'react';
-import Walkthrough from '@/components/Walkthrough';
 
 export default function CustomerTabLayout() {
-  const { session, loading, userProfile, markWalkthroughComplete } = useAuth();
+  const { session, loading } = useAuth();
   const { theme } = useTheme();
-  const [showWalkthrough, setShowWalkthrough] = useState(false);
-
-  useEffect(() => {
-    if (!loading && userProfile && !userProfile.has_completed_walkthrough) {
-      setShowWalkthrough(true);
-    }
-  }, [loading, userProfile]);
-
-  const handleWalkthroughComplete = async () => {
-    setShowWalkthrough(false);
-    try {
-      await markWalkthroughComplete();
-    } catch (error) {
-      console.error('Error completing walkthrough:', error);
-    }
-  };
 
   if (loading) {
     return (
@@ -39,70 +21,63 @@ export default function CustomerTabLayout() {
   }
 
   return (
-    <>
-      <Tabs
-        screenOptions={{
-          headerShown: true,
-          headerStyle: {
-            backgroundColor: theme.colors.surface,
-          },
-          headerTintColor: theme.colors.text,
-          tabBarStyle: {
-            backgroundColor: theme.colors.tabBarBackground,
-          },
-          tabBarActiveTintColor: theme.colors.tabBarActiveTint,
-          tabBarInactiveTintColor: theme.colors.tabBarInactiveTint,
+    <Tabs
+      screenOptions={{
+        headerShown: true,
+        headerStyle: {
+          backgroundColor: theme.colors.surface,
+        },
+        headerTintColor: theme.colors.text,
+        tabBarStyle: {
+          backgroundColor: theme.colors.tabBarBackground,
+        },
+        tabBarActiveTintColor: theme.colors.tabBarActiveTint,
+        tabBarInactiveTintColor: theme.colors.tabBarInactiveTint,
+      }}
+    >
+      <Tabs.Screen
+        name="index"
+        options={{
+          title: 'Home',
+          tabBarIcon: ({ size, color }) => <Home size={size} color={color} />,
         }}
-      >
-        <Tabs.Screen
-          name="index"
-          options={{
-            title: 'Home',
-            tabBarIcon: ({ size, color }) => <Home size={size} color={color} />,
-          }}
-        />
-        <Tabs.Screen
-          name="post-job"
-          options={{
-            title: 'Post Job',
-            tabBarIcon: ({ size, color }) => <Plus size={size} color={color} />,
-          }}
-        />
-        <Tabs.Screen
-          name="my-jobs"
-          options={{
-            title: 'My Jobs',
-            tabBarIcon: ({ size, color }) => <List size={size} color={color} />,
-          }}
-        />
-        <Tabs.Screen
-          name="messages"
-          options={{
-            title: 'Messages',
-            tabBarIcon: ({ size, color }) => <MessageCircle size={size} color={color} />,
-          }}
-        />
-        <Tabs.Screen
-          name="help"
-          options={{
-            title: 'Help',
-            tabBarIcon: ({ size, color }) => <HelpCircle size={size} color={color} />,
-          }}
-        />
-        <Tabs.Screen
-          name="profile"
-          options={{
-            title: 'Profile',
-            tabBarIcon: ({ size, color }) => <User size={size} color={color} />,
-          }}
-        />
-      </Tabs>
-      <Walkthrough
-        visible={showWalkthrough}
-        onComplete={handleWalkthroughComplete}
-        userType="customer"
       />
-    </>
+      <Tabs.Screen
+        name="post-job"
+        options={{
+          title: 'Post Job',
+          tabBarIcon: ({ size, color }) => <Plus size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="my-jobs"
+        options={{
+          title: 'My Jobs',
+          tabBarIcon: ({ size, color }) => <List size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="messages"
+        options={{
+          title: 'Messages',
+          tabBarIcon: ({ size, color }) => <MessageCircle size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="help"
+        options={{
+          title: 'Help',
+          tabBarIcon: ({ size, color }) => <HelpCircle size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: 'Profile',
+          tabBarIcon: ({ size, color }) => <User size={size} color={color} />,
+        }}
+      />
+    </Tabs>
   );
 }
 

@@ -1,14 +1,9 @@
 import { createContext, useContext, useEffect, useState } from 'react';
-import { Platform } from 'react-native';
 import { Session } from '@supabase/supabase-js';
 import * as SplashScreen from 'expo-splash-screen';
-import * as WebBrowser from 'expo-web-browser';
-import * as SecureStore from 'expo-secure-store';
 import { supabase } from '@/lib/supabase';
 import { registerForPushNotificationsAsync, savePushToken } from '@/lib/notifications';
 import { router } from 'expo-router';
-
-WebBrowser.maybeCompleteAuthSession();
 
 interface AuthContextType {
   session: Session | null;
@@ -16,10 +11,8 @@ interface AuthContextType {
   userProfile: UserProfile | null;
   signUp: (email: string, password: string, fullName: string, userType: 'customer' | 'business', phone?: string) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
-  signInWithGoogle: (userType: 'customer' | 'business') => Promise<void>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
-  markWalkthroughComplete: () => Promise<void>;
 }
 
 interface UserProfile {
@@ -29,7 +22,6 @@ interface UserProfile {
   user_type: 'customer' | 'business';
   last_job_posted_at: string | null;
   profile_picture_url: string | null;
-  has_completed_walkthrough: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -161,33 +153,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           if (session?.user?.id) {
             (async () => {
               try {
-                const { data: existingProfile } = await supabase
-                  .from('profiles')
-                  .select('*')
-                  .eq('id', session.user.id)
-                  .maybeSingle();
-
-                if (!existingProfile && Platform.OS === 'web' && typeof window !== 'undefined') {
-                  const pendingUserType = localStorage.getItem('pendingUserType') as 'customer' | 'business' | null;
-
-                  if (pendingUserType) {
-                    console.log('AuthContext: Creating profile for OAuth user with type:', pendingUserType);
-                    const fullName = session.user.user_metadata?.full_name ||
-                                   session.user.user_metadata?.name ||
-                                   session.user.email?.split('@')[0] ||
-                                   'User';
-
-                    await supabase.from('profiles').insert({
-                      id: session.user.id,
-                      full_name: fullName,
-                      phone: null,
-                      user_type: pendingUserType,
-                    });
-
-                    localStorage.removeItem('pendingUserType');
-                  }
-                }
-
                 await loadUserProfile(session.user.id);
               } catch (error) {
                 console.error('Error loading profile in auth state change:', error);
@@ -299,55 +264,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     userType: 'customer' | 'business',
     phone?: string
   ) => {
-    console.log('SignUp: Starting signup process');
-    console.log('SignUp: Email:', email);
-    console.log('SignUp: User type:', userType);
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+    });
 
-    try {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
+    if (error) throw error;
+
+    if (data.user) {
+      const { error: profileError } = await supabase.from('profiles').insert({
+        id: data.user.id,
+        full_name: fullName,
+        phone: phone || null,
+        user_type: userType,
       });
 
-      console.log('SignUp: Supabase response:', {
-        hasData: !!data,
-        hasError: !!error,
-        hasUser: !!data?.user,
-        userId: data?.user?.id
-      });
+      if (profileError) throw profileError;
 
-      if (error) {
-        console.error('SignUp: Auth error:', error);
-        throw error;
-      }
-
-      if (data.user) {
-        console.log('SignUp: Creating profile for user:', data.user.id);
-
-        const { error: profileError } = await supabase.from('profiles').insert({
-          id: data.user.id,
-          full_name: fullName,
-          phone: phone || null,
-          user_type: userType,
-        });
-
-        if (profileError) {
-          console.error('SignUp: Profile creation error:', profileError);
-          throw profileError;
-        }
-
-        console.log('SignUp: Profile created successfully');
-        console.log('SignUp: Loading user profile');
-
-        await loadUserProfile(data.user.id);
-
-        console.log('SignUp: Signup complete');
-      } else {
-        console.warn('SignUp: No user returned from signup');
-      }
-    } catch (err) {
-      console.error('SignUp: Exception during signup:', err);
-      throw err;
+      await loadUserProfile(data.user.id);
     }
   };
 
@@ -369,130 +303,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.log('AuthContext: Setting session from signIn');
       setSession(data.session);
       await loadUserProfile(data.user.id);
-    }
-  };
-
-  const signInWithGoogle = async (userType: 'customer' | 'business') => {
-    console.log('AuthContext: signInWithGoogle called for', userType);
-
-    try {
-      if (Platform.OS === 'web') {
-        console.log('AuthContext: Using web OAuth flow');
-
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('pendingUserType', userType);
-        }
-
-        const { data, error } = await supabase.auth.signInWithOAuth({
-          provider: 'google',
-          options: {
-            skipBrowserRedirect: false,
-          },
-        });
-
-        if (error) {
-          console.error('AuthContext: OAuth error:', error);
-          throw new Error(error.message || 'Failed to initialize Google sign-in');
-        }
-
-        return;
-      }
-
-      console.log('AuthContext: Using mobile OAuth flow');
-      const redirectTo = 'myapp://';
-
-      console.log('AuthContext: Requesting OAuth URL from Supabase');
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo,
-          skipBrowserRedirect: true,
-        },
-      });
-
-      if (error) {
-        console.error('AuthContext: OAuth URL request error:', error);
-        throw new Error(error.message || 'Failed to initialize Google sign-in');
-      }
-
-      if (!data?.url) {
-        console.error('AuthContext: No OAuth URL returned from Supabase');
-        throw new Error('Google sign-in is not configured. Please enable Google OAuth in Supabase dashboard.');
-      }
-
-      console.log('AuthContext: Opening browser for OAuth');
-      const result = await WebBrowser.openAuthSessionAsync(
-        data.url,
-        redirectTo
-      );
-
-      console.log('AuthContext: Browser result:', result.type);
-
-      if (result.type === 'success') {
-        const { url } = result;
-        console.log('AuthContext: Parsing OAuth callback URL');
-
-        const hashParams = url.split('#')[1];
-        if (!hashParams) {
-          throw new Error('No authentication data received from Google');
-        }
-
-        const params = new URLSearchParams(hashParams);
-        const accessToken = params.get('access_token');
-        const refreshToken = params.get('refresh_token');
-
-        if (!accessToken || !refreshToken) {
-          throw new Error('Invalid authentication response from Google');
-        }
-
-        console.log('AuthContext: Setting session with tokens');
-        const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
-          access_token: accessToken,
-          refresh_token: refreshToken,
-        });
-
-        if (sessionError) throw sessionError;
-
-        if (sessionData.user) {
-          console.log('AuthContext: Checking for existing profile');
-          const { data: existingProfile } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', sessionData.user.id)
-            .maybeSingle();
-
-          if (!existingProfile) {
-            console.log('AuthContext: Creating new profile');
-            const fullName = sessionData.user.user_metadata?.full_name ||
-                           sessionData.user.user_metadata?.name ||
-                           sessionData.user.email?.split('@')[0] ||
-                           'User';
-
-            const { error: profileError } = await supabase.from('profiles').insert({
-              id: sessionData.user.id,
-              full_name: fullName,
-              phone: null,
-              user_type: userType,
-            });
-
-            if (profileError) throw profileError;
-          }
-
-          console.log('AuthContext: Loading user profile');
-          setSession(sessionData.session);
-          await loadUserProfile(sessionData.user.id);
-          console.log('AuthContext: Google sign-in complete');
-        }
-      } else if (result.type === 'cancel') {
-        console.log('AuthContext: User cancelled sign-in');
-        throw new Error('Sign in was cancelled');
-      } else {
-        console.error('AuthContext: Unexpected browser result:', result);
-        throw new Error('Failed to complete sign-in');
-      }
-    } catch (err) {
-      console.error('AuthContext: signInWithGoogle error:', err);
-      throw err;
     }
   };
 
@@ -531,22 +341,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const markWalkthroughComplete = async () => {
-    if (!session?.user.id) return;
-
-    const { error } = await supabase
-      .from('profiles')
-      .update({ has_completed_walkthrough: true })
-      .eq('id', session.user.id);
-
-    if (error) {
-      console.error('Error marking walkthrough complete:', error);
-      throw error;
-    }
-
-    await refreshProfile();
-  };
-
   return (
     <AuthContext.Provider
       value={{
@@ -555,10 +349,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         userProfile,
         signUp,
         signIn,
-        signInWithGoogle,
         signOut,
         refreshProfile,
-        markWalkthroughComplete,
       }}
     >
       {children}
