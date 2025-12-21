@@ -3,10 +3,28 @@ import { Briefcase, DollarSign, List, User, MessageCircle, HelpCircle } from 'lu
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { useState, useEffect } from 'react';
+import Walkthrough from '@/components/Walkthrough';
 
 export default function BusinessTabLayout() {
-  const { session, loading } = useAuth();
+  const { session, loading, userProfile, markWalkthroughComplete } = useAuth();
   const { theme } = useTheme();
+  const [showWalkthrough, setShowWalkthrough] = useState(false);
+
+  useEffect(() => {
+    if (!loading && userProfile && !userProfile.has_completed_walkthrough) {
+      setShowWalkthrough(true);
+    }
+  }, [loading, userProfile]);
+
+  const handleWalkthroughComplete = async () => {
+    setShowWalkthrough(false);
+    try {
+      await markWalkthroughComplete();
+    } catch (error) {
+      console.error('Error completing walkthrough:', error);
+    }
+  };
 
   if (loading) {
     return (
@@ -21,67 +39,74 @@ export default function BusinessTabLayout() {
   }
 
   return (
-    <Tabs
-      screenOptions={{
-        headerShown: true,
-        headerStyle: {
-          backgroundColor: theme.colors.surface,
-        },
-        headerTintColor: theme.colors.text,
-        tabBarStyle: {
-          backgroundColor: theme.colors.tabBarBackground,
-        },
-        tabBarActiveTintColor: theme.colors.tabBarActiveTint,
-        tabBarInactiveTintColor: theme.colors.tabBarInactiveTint,
-      }}
-    >
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Available Jobs',
-          tabBarIcon: ({ size, color }) => (
-            <Briefcase size={size} color={color} />
-          ),
+    <>
+      <Tabs
+        screenOptions={{
+          headerShown: true,
+          headerStyle: {
+            backgroundColor: theme.colors.surface,
+          },
+          headerTintColor: theme.colors.text,
+          tabBarStyle: {
+            backgroundColor: theme.colors.tabBarBackground,
+          },
+          tabBarActiveTintColor: theme.colors.tabBarActiveTint,
+          tabBarInactiveTintColor: theme.colors.tabBarInactiveTint,
         }}
+      >
+        <Tabs.Screen
+          name="index"
+          options={{
+            title: 'Available Jobs',
+            tabBarIcon: ({ size, color }) => (
+              <Briefcase size={size} color={color} />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="my-bids"
+          options={{
+            title: 'My Bids',
+            tabBarIcon: ({ size, color }) => (
+              <DollarSign size={size} color={color} />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="won-jobs"
+          options={{
+            title: 'Won Jobs',
+            tabBarIcon: ({ size, color }) => <List size={size} color={color} />,
+          }}
+        />
+        <Tabs.Screen
+          name="messages"
+          options={{
+            title: 'Messages',
+            tabBarIcon: ({ size, color }) => <MessageCircle size={size} color={color} />,
+          }}
+        />
+        <Tabs.Screen
+          name="help"
+          options={{
+            title: 'Help',
+            tabBarIcon: ({ size, color }) => <HelpCircle size={size} color={color} />,
+          }}
+        />
+        <Tabs.Screen
+          name="profile"
+          options={{
+            title: 'Profile',
+            tabBarIcon: ({ size, color }) => <User size={size} color={color} />,
+          }}
+        />
+      </Tabs>
+      <Walkthrough
+        visible={showWalkthrough}
+        onComplete={handleWalkthroughComplete}
+        userType="business"
       />
-      <Tabs.Screen
-        name="my-bids"
-        options={{
-          title: 'My Bids',
-          tabBarIcon: ({ size, color }) => (
-            <DollarSign size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="won-jobs"
-        options={{
-          title: 'Won Jobs',
-          tabBarIcon: ({ size, color }) => <List size={size} color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="messages"
-        options={{
-          title: 'Messages',
-          tabBarIcon: ({ size, color }) => <MessageCircle size={size} color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="help"
-        options={{
-          title: 'Help',
-          tabBarIcon: ({ size, color }) => <HelpCircle size={size} color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: 'Profile',
-          tabBarIcon: ({ size, color }) => <User size={size} color={color} />,
-        }}
-      />
-    </Tabs>
+    </>
   );
 }
 
