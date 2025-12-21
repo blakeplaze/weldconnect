@@ -15,25 +15,11 @@ import { useAuth } from '@/contexts/AuthContext';
 import ConfirmModal from '@/components/ConfirmModal';
 import SuccessModal from '@/components/SuccessModal';
 import { useTheme } from '@/contexts/ThemeContext';
-import { supabase } from '@/lib/supabase';
+import { localDb, Job, Application } from '@/lib/localDb';
 
 interface WonJob {
-  id: string;
-  job_id: string;
-  amount: number;
-  job: {
-    id: string;
-    title: string;
-    description: string;
-    city: string;
-    state: string;
-    address: string | null;
-    contact_name: string | null;
-    contact_phone: string | null;
-    status: string;
-    customer_id: string;
-    job_image_url: string | null;
-  };
+  application: Application;
+  job: Job;
 }
 
 export default function WonJobs() {
@@ -65,72 +51,20 @@ export default function WonJobs() {
 
   const loadWonJobs = async (userId: string) => {
     try {
-      console.log('Won Jobs: Querying businesses for owner_id:', userId);
-      const { data: businessData, error: businessError } = await supabase
-        .from('businesses')
-        .select('id')
-        .eq('owner_id', userId)
-        .maybeSingle();
+      console.log('Won Jobs: Loading applications for user:', userId);
 
-      console.log('Won Jobs: Business query result:', { businessData, businessError });
+      const applications = await localDb.getApplications({ business_id: userId });
+      const acceptedApps = applications.filter(app => app.status === 'accepted');
 
-      if (businessError) {
-        console.error('Won Jobs: Business query error:', businessError);
-        setLoading(false);
-        setRefreshing(false);
-        return;
-      }
-      if (!businessData) {
-        console.log('Won Jobs: No business found for user');
-        setLoading(false);
-        setRefreshing(false);
-        return;
+      const wonJobsData: WonJob[] = [];
+      for (const app of acceptedApps) {
+        const job = await localDb.getJob(app.job_id);
+        if (job) {
+          wonJobsData.push({ application: app, job });
+        }
       }
 
-      console.log('Won Jobs: Found business, loading won jobs');
-      const { data, error } = await supabase
-        .from('bids')
-        .select(
-          `
-          id,
-          job_id,
-          amount,
-          job:jobs!bids_job_id_fkey(
-            id,
-            title,
-            description,
-            city,
-            state,
-            address,
-            contact_name,
-            contact_phone,
-            status,
-            winning_bid_id,
-            customer_id,
-            job_image_url,
-            created_at
-          )
-        `
-        )
-        .eq('business_id', businessData.id)
-        .order('created_at', { foreignTable: 'jobs', ascending: false });
-
-      if (error) {
-        console.error('Won Jobs: Bids query error:', error);
-        setLoading(false);
-        setRefreshing(false);
-        return;
-      }
-
-      const normalizedData = (data || []).map((bid: any) => ({
-        ...bid,
-        job: Array.isArray(bid.job) ? bid.job[0] : bid.job,
-      }));
-
-      const won = normalizedData.filter(
-        (bid: any) => bid.job.winning_bid_id === bid.id
-      );
-      setWonJobs(won);
+      setWonJobs(wonJobsData);
     } catch (err) {
       console.error('Error loading won jobs:', err);
     } finally {
@@ -150,35 +84,11 @@ export default function WonJobs() {
     setExpandedId(expandedId === id ? null : id);
   };
 
-  const handleMessageCustomer = async (job: WonJob) => {
+  const handleMessageCustomer = async (wonJob: WonJob) => {
     if (!userProfile?.id) return;
 
     try {
-      const { data: existingConversation, error: findError } = await supabase
-        .from('conversations')
-        .select('id')
-        .eq('job_id', job.job_id)
-        .eq('business_id', userProfile.id)
-        .maybeSingle();
-
-      if (findError) throw findError;
-
-      if (existingConversation) {
-        router.push(`/chat/${existingConversation.id}`);
-      } else {
-        const { data: newConversation, error: createError } = await supabase
-          .from('conversations')
-          .insert({
-            job_id: job.job_id,
-            customer_id: job.job.customer_id,
-            business_id: userProfile.id,
-          })
-          .select('id')
-          .single();
-
-        if (createError) throw createError;
-        router.push(`/chat/${newConversation.id}`);
-      }
+      console.log('Message customer feature - to be implemented');
     } catch (error) {
       console.error('Error opening conversation:', error);
     }
@@ -192,14 +102,9 @@ export default function WonJobs() {
   const confirmMarkComplete = async () => {
     if (!selectedJob) return;
 
-    setCompletingJobId(selectedJob.job_id);
+    setCompletingJobId(selectedJob.job.id);
     try {
-      const { error } = await supabase
-        .from('jobs')
-        .update({ status: 'completed' })
-        .eq('id', selectedJob.job_id);
-
-      if (error) throw error;
+      await localDb.updateJob(selectedJob.job.id, { status: 'completed' });
 
       setShowConfirmModal(false);
       setShowSuccessModal(true);
@@ -215,14 +120,13 @@ export default function WonJobs() {
   };
 
   const renderJob = ({ item }: { item: WonJob }) => {
-    const isExpanded = expandedId === item.id;
-    const isAwarded = item.job.status === 'awarded';
+    const isExpanded = expandedId === item.application.id;
     const isCompleted = item.job.status === 'completed';
 
     return (
       <TouchableOpacity
         style={[styles.jobCard, { backgroundColor: theme.colors.card }]}
-        onPress={() => toggleExpand(item.id)}
+        onPress={() => toggleExpand(item.application.id)}
         activeOpacity={0.7}
       >
         <View style={styles.jobHeader}>
@@ -237,7 +141,7 @@ export default function WonJobs() {
           </View>
           <View style={[styles.amountBadge, { backgroundColor: theme.colors.success + '20' }]}>
             <DollarSign size={16} color={theme.colors.success} />
-            <Text style={[styles.amountText, { color: theme.colors.success }]}>${item.amount.toFixed(2)}</Text>
+            <Text style={[styles.amountText, { color: theme.colors.success }]}>${item.application.bid_amount.toFixed(2)}</Text>
           </View>
         </View>
 
@@ -264,74 +168,60 @@ export default function WonJobs() {
             </Text>
           </TouchableOpacity>
 
-          {(isAwarded || isCompleted) && (
-            <TouchableOpacity
-              style={[
-                styles.actionButton,
-                { backgroundColor: theme.colors.success },
-                (completingJobId === item.job_id || isCompleted) && { backgroundColor: theme.colors.textSecondary, opacity: 0.5 }
-              ]}
-              onPress={() => handleMarkComplete(item)}
-              disabled={completingJobId === item.job_id || isCompleted}
-            >
-              {completingJobId === item.job_id ? (
-                <ActivityIndicator size="small" color={theme.colors.card} />
-              ) : (
-                <>
-                  <CheckCircle size={18} color={theme.colors.card} />
-                  <Text style={[styles.completeButtonText, { color: theme.colors.card }]}>
-                    {isCompleted ? 'Completed' : 'Mark Complete'}
-                  </Text>
-                </>
-              )}
-            </TouchableOpacity>
-          )}
+          <TouchableOpacity
+            style={[
+              styles.actionButton,
+              { backgroundColor: theme.colors.success },
+              (completingJobId === item.job.id || isCompleted) && { backgroundColor: theme.colors.textSecondary, opacity: 0.5 }
+            ]}
+            onPress={() => handleMarkComplete(item)}
+            disabled={completingJobId === item.job.id || isCompleted}
+          >
+            {completingJobId === item.job.id ? (
+              <ActivityIndicator size="small" color={theme.colors.card} />
+            ) : (
+              <>
+                <CheckCircle size={18} color={theme.colors.card} />
+                <Text style={[styles.completeButtonText, { color: theme.colors.card }]}>
+                  {isCompleted ? 'Completed' : 'Mark Complete'}
+                </Text>
+              </>
+            )}
+          </TouchableOpacity>
         </View>
 
         {isExpanded && (
           <View style={styles.detailsContainer}>
             <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
 
-            {item.job.job_image_url && (
+            {item.job.image_urls && item.job.image_urls.length > 0 && (
               <View style={styles.imageContainer}>
                 <Text style={[styles.detailLabel, { color: theme.colors.textSecondary }]}>Job Photo</Text>
                 <Image
-                  source={{ uri: item.job.job_image_url }}
+                  source={{ uri: item.job.image_urls[0] }}
                   style={styles.jobImage}
                   resizeMode="cover"
                 />
               </View>
             )}
 
-            {item.job.address && (
-              <View style={styles.detailRow}>
-                <MapPin size={20} color={theme.colors.textSecondary} />
-                <View style={styles.detailContent}>
-                  <Text style={[styles.detailLabel, { color: theme.colors.textSecondary }]}>Address</Text>
-                  <Text style={[styles.detailValue, { color: theme.colors.text }]}>{item.job.address}</Text>
-                </View>
+            <View style={styles.detailRow}>
+              <MapPin size={20} color={theme.colors.textSecondary} />
+              <View style={styles.detailContent}>
+                <Text style={[styles.detailLabel, { color: theme.colors.textSecondary }]}>Location</Text>
+                <Text style={[styles.detailValue, { color: theme.colors.text }]}>{item.job.location}</Text>
               </View>
-            )}
+            </View>
 
-            {item.job.contact_name && (
-              <View style={styles.detailRow}>
-                <User size={20} color={theme.colors.textSecondary} />
-                <View style={styles.detailContent}>
-                  <Text style={[styles.detailLabel, { color: theme.colors.textSecondary }]}>Contact Name</Text>
-                  <Text style={[styles.detailValue, { color: theme.colors.text }]}>{item.job.contact_name}</Text>
-                </View>
+            <View style={styles.detailRow}>
+              <DollarSign size={20} color={theme.colors.textSecondary} />
+              <View style={styles.detailContent}>
+                <Text style={[styles.detailLabel, { color: theme.colors.textSecondary }]}>Budget Range</Text>
+                <Text style={[styles.detailValue, { color: theme.colors.text }]}>
+                  ${item.job.budget_min} - ${item.job.budget_max}
+                </Text>
               </View>
-            )}
-
-            {item.job.contact_phone && (
-              <View style={styles.detailRow}>
-                <Phone size={20} color={theme.colors.textSecondary} />
-                <View style={styles.detailContent}>
-                  <Text style={[styles.detailLabel, { color: theme.colors.textSecondary }]}>Contact Phone</Text>
-                  <Text style={[styles.detailValue, { color: theme.colors.text }]}>{item.job.contact_phone}</Text>
-                </View>
-              </View>
-            )}
+            </View>
           </View>
         )}
 
@@ -339,7 +229,7 @@ export default function WonJobs() {
           <View style={styles.locationContainer}>
             <MapPin size={16} color={theme.colors.textSecondary} />
             <Text style={[styles.locationText, { color: theme.colors.textSecondary }]}>
-              {item.job.city}, {item.job.state}
+              {item.job.location}
             </Text>
           </View>
           <Text style={[styles.tapText, { color: theme.colors.primary }]}>
@@ -363,7 +253,7 @@ export default function WonJobs() {
       <FlatList
         data={wonJobs}
         renderItem={renderJob}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => item.application.id}
         contentContainerStyle={styles.listContent}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
