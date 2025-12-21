@@ -1,5 +1,4 @@
 import { Modal, View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { useTheme } from '@/contexts/ThemeContext';
 
 interface ConfirmModalProps {
   visible: boolean;
@@ -22,8 +21,6 @@ export default function ConfirmModal({
   onCancel,
   loading = false,
 }: ConfirmModalProps) {
-  const { theme } = useTheme();
-
   return (
     <Modal
       visible={visible}
@@ -32,28 +29,28 @@ export default function ConfirmModal({
       onRequestClose={onCancel}
     >
       <View style={styles.overlay}>
-        <View style={[styles.modal, { backgroundColor: theme.colors.card }]}>
-          <Text style={[styles.title, { color: theme.colors.text }]}>{title}</Text>
-          <Text style={[styles.message, { color: theme.colors.textSecondary }]}>{message}</Text>
+        <View style={styles.modal}>
+          <Text style={styles.title}>{title}</Text>
+          <Text style={styles.message}>{message}</Text>
 
           <View style={styles.buttonContainer}>
             <TouchableOpacity
-              style={[styles.button, { backgroundColor: theme.colors.input || theme.colors.card }]}
+              style={[styles.button, styles.cancelButton]}
               onPress={onCancel}
               disabled={loading}
             >
-              <Text style={[styles.cancelButtonText, { color: theme.colors.textSecondary }]}>{cancelText}</Text>
+              <Text style={styles.cancelButtonText}>{cancelText}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.button, { backgroundColor: theme.colors.success }]}
+              style={[styles.button, styles.confirmButton]}
               onPress={onConfirm}
               disabled={loading}
             >
               {loading ? (
-                <ActivityIndicator size="small" color={theme.colors.card} />
+                <ActivityIndicator size="small" color="#fff" />
               ) : (
-                <Text style={[styles.confirmButtonText, { color: theme.colors.card }]}>{confirmText}</Text>
+                <Text style={styles.confirmButtonText}>{confirmText}</Text>
               )}
             </TouchableOpacity>
           </View>
@@ -72,6 +69,7 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   modal: {
+    backgroundColor: '#fff',
     borderRadius: 12,
     padding: 24,
     width: '100%',
@@ -81,10 +79,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: '700',
+    color: '#1a1a1a',
     textAlign: 'center',
   },
   message: {
     fontSize: 16,
+    color: '#666',
     textAlign: 'center',
     lineHeight: 22,
   },
@@ -102,12 +102,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     minHeight: 48,
   },
+  cancelButton: {
+    backgroundColor: '#f5f5f5',
+  },
   cancelButtonText: {
     fontSize: 16,
     fontWeight: '600',
+    color: '#666',
+  },
+  confirmButton: {
+    backgroundColor: '#34C759',
   },
   confirmButtonText: {
     fontSize: 16,
     fontWeight: '600',
+    color: '#fff',
   },
 });

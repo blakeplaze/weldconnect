@@ -14,8 +14,6 @@ export interface Theme {
     text: string;
     textSecondary: string;
     textMuted: string;
-    textPrimary: string;
-    input: string;
     error: string;
     errorLight: string;
     success: string;
@@ -49,8 +47,6 @@ export const lightTheme: Theme = {
     text: '#111827',
     textSecondary: '#4b5563',
     textMuted: '#9ca3af',
-    textPrimary: '#111827',
-    input: '#ffffff',
     error: '#dc2626',
     errorLight: '#fee2e2',
     success: '#16a34a',
@@ -84,8 +80,6 @@ export const darkTheme: Theme = {
     text: '#f1f5f9',
     textSecondary: '#cbd5e1',
     textMuted: '#64748b',
-    textPrimary: '#f1f5f9',
-    input: '#1e293b',
     error: '#ef4444',
     errorLight: '#7f1d1d',
     success: '#22c55e',

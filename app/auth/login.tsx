@@ -13,7 +13,6 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
-import { useTheme } from '@/contexts/ThemeContext';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -21,7 +20,6 @@ export default function Login() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { signIn, session, userProfile } = useAuth();
-  const { theme } = useTheme();
   const router = useRouter();
 
   useEffect(() => {
@@ -56,7 +54,7 @@ export default function Login() {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={[styles.container, { backgroundColor: theme.colors.card }]}
+      style={styles.container}
     >
       <ScrollView
         contentContainerStyle={styles.scrollContent}
@@ -68,16 +66,15 @@ export default function Login() {
             style={styles.logo}
             resizeMode="contain"
           />
-          <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>Mobile Welding Network</Text>
+          <Text style={styles.subtitle}>Mobile Welding Network</Text>
         </View>
 
-        {error ? <Text style={[styles.error, { backgroundColor: theme.colors.errorLight, color: theme.colors.error }]}>{error}</Text> : null}
+        {error ? <Text style={styles.error}>{error}</Text> : null}
 
         <View style={styles.form}>
           <TextInput
-            style={[styles.input, { backgroundColor: theme.colors.inputBackground, borderColor: theme.colors.inputBorder, color: theme.colors.text }]}
+            style={styles.input}
             placeholder="Email"
-            placeholderTextColor={theme.colors.placeholderText}
             value={email}
             onChangeText={setEmail}
             autoCapitalize="none"
@@ -85,9 +82,8 @@ export default function Login() {
             editable={!loading}
           />
           <TextInput
-            style={[styles.input, { backgroundColor: theme.colors.inputBackground, borderColor: theme.colors.inputBorder, color: theme.colors.text }]}
+            style={styles.input}
             placeholder="Password"
-            placeholderTextColor={theme.colors.placeholderText}
             value={password}
             onChangeText={setPassword}
             secureTextEntry
@@ -95,14 +91,14 @@ export default function Login() {
           />
 
           <TouchableOpacity
-            style={[styles.button, { backgroundColor: theme.colors.primary }, loading && styles.buttonDisabled]}
+            style={[styles.button, loading && styles.buttonDisabled]}
             onPress={handleLogin}
             disabled={loading}
           >
             {loading ? (
-              <ActivityIndicator color={theme.colors.card} />
+              <ActivityIndicator color="#fff" />
             ) : (
-              <Text style={[styles.buttonText, { color: theme.colors.card }]}>Sign In</Text>
+              <Text style={styles.buttonText}>Sign In</Text>
             )}
           </TouchableOpacity>
 
@@ -110,14 +106,14 @@ export default function Login() {
             onPress={() => router.push('/auth/forgot-password')}
             disabled={loading}
           >
-            <Text style={[styles.linkText, { color: theme.colors.primary }]}>Forgot Password?</Text>
+            <Text style={styles.linkText}>Forgot Password?</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             onPress={() => router.push('/auth/signup')}
             disabled={loading}
           >
-            <Text style={[styles.linkText, { color: theme.colors.primary }]}>
+            <Text style={styles.linkText}>
               Don't have an account? Sign Up
             </Text>
           </TouchableOpacity>
@@ -130,6 +126,7 @@ export default function Login() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#fff',
   },
   scrollContent: {
     flexGrow: 1,
@@ -148,19 +145,23 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 16,
+    color: '#666',
     marginTop: 8,
   },
   form: {
     gap: 16,
   },
   input: {
+    backgroundColor: '#f8f8f8',
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderRadius: 12,
     fontSize: 16,
     borderWidth: 1,
+    borderColor: '#e0e0e0',
   },
   button: {
+    backgroundColor: '#007AFF',
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
@@ -170,15 +171,19 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   buttonText: {
+    color: '#fff',
     fontSize: 18,
     fontWeight: '600',
   },
   linkText: {
+    color: '#007AFF',
     textAlign: 'center',
     fontSize: 16,
     marginTop: 8,
   },
   error: {
+    backgroundColor: '#ffebee',
+    color: '#c62828',
     padding: 12,
     borderRadius: 8,
     marginBottom: 16,

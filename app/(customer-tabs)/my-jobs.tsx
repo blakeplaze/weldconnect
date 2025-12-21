@@ -13,7 +13,6 @@ import { supabase } from '@/lib/supabase';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Clock, CheckCircle, DollarSign, Star } from 'lucide-react-native';
 import ReviewModal from '@/components/ReviewModal';
-import { useTheme } from '@/contexts/ThemeContext';
 
 interface Job {
   id: string;
@@ -33,7 +32,6 @@ interface Job {
 export default function MyJobs() {
   const { session } = useAuth();
   const router = useRouter();
-  const { theme } = useTheme();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -124,15 +122,15 @@ export default function MyJobs() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'open':
-        return theme.colors.warning;
+        return '#FF9500';
       case 'bidding':
-        return theme.colors.primary;
+        return '#007AFF';
       case 'awarded':
-        return theme.colors.success;
+        return '#34C759';
       case 'completed':
-        return theme.colors.textSecondary;
+        return '#999';
       default:
-        return theme.colors.textSecondary;
+        return '#999';
     }
   };
 
@@ -156,38 +154,38 @@ export default function MyJobs() {
 
   const renderJob = ({ item }: { item: Job }) => (
     <TouchableOpacity
-      style={[styles.jobCard, { backgroundColor: theme.colors.card }]}
+      style={styles.jobCard}
       onPress={() => router.push(`/job-details/${item.id}` as any)}
     >
       <View style={styles.jobHeader}>
-        <Text style={[styles.jobTitle, { color: theme.colors.text }]} numberOfLines={1}>
+        <Text style={styles.jobTitle} numberOfLines={1}>
           {item.title}
         </Text>
         <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) }]}>
           {getStatusIcon(item.status)}
-          <Text style={[styles.statusText, { color: theme.colors.card }]}>{item.status.toUpperCase()}</Text>
+          <Text style={styles.statusText}>{item.status.toUpperCase()}</Text>
         </View>
       </View>
-      <Text style={[styles.jobLocation, { color: theme.colors.textSecondary }]}>
+      <Text style={styles.jobLocation}>
         {item.city}, {item.state}
       </Text>
       <View style={styles.jobFooter}>
         <View style={styles.bidInfo}>
-          <DollarSign size={16} color={theme.colors.textSecondary} />
-          <Text style={[styles.bidCount, { color: theme.colors.textSecondary }]}>
+          <DollarSign size={16} color="#666" />
+          <Text style={styles.bidCount}>
             {item.bid_count} {item.bid_count === 1 ? 'bid' : 'bids'}
           </Text>
         </View>
-        <Text style={[styles.dateText, { color: theme.colors.textSecondary }]}>
+        <Text style={styles.dateText}>
           {new Date(item.created_at).toLocaleDateString()}
         </Text>
       </View>
 
       {item.status === 'completed' && item.business_id && (
-        <View style={[styles.reviewSection, { borderTopColor: theme.colors.border }]}>
+        <View style={styles.reviewSection}>
           {item.has_review ? (
             <View style={styles.ratingDisplay}>
-              <Text style={[styles.ratedText, { color: theme.colors.textSecondary }]}>Your rating:</Text>
+              <Text style={styles.ratedText}>Your rating:</Text>
               <View style={styles.starsRow}>
                 {[1, 2, 3, 4, 5].map((star) => (
                   <Star
@@ -201,14 +199,14 @@ export default function MyJobs() {
             </View>
           ) : (
             <TouchableOpacity
-              style={[styles.reviewButton, { backgroundColor: theme.colors.primary + '20', borderColor: theme.colors.primary }]}
+              style={styles.reviewButton}
               onPress={(e) => {
                 e.stopPropagation();
                 handleLeaveReview(item);
               }}
             >
-              <Star size={16} color={theme.colors.primary} />
-              <Text style={[styles.reviewButtonText, { color: theme.colors.primary }]}>Leave Review</Text>
+              <Star size={16} color="#007AFF" />
+              <Text style={styles.reviewButtonText}>Leave Review</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -218,14 +216,14 @@ export default function MyJobs() {
 
   if (loading) {
     return (
-      <View style={[styles.centerContainer, { backgroundColor: theme.colors.background }]}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
+      <View style={styles.centerContainer}>
+        <ActivityIndicator size="large" color="#007AFF" />
       </View>
     );
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <View style={styles.container}>
       <FlatList
         data={jobs}
         renderItem={renderJob}
@@ -236,8 +234,8 @@ export default function MyJobs() {
         }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Text style={[styles.emptyText, { color: theme.colors.textSecondary }]}>No jobs posted yet</Text>
-            <Text style={[styles.emptySubtext, { color: theme.colors.textSecondary }]}>
+            <Text style={styles.emptyText}>No jobs posted yet</Text>
+            <Text style={styles.emptySubtext}>
               Post your first job to get started
             </Text>
           </View>
@@ -267,6 +265,7 @@ export default function MyJobs() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#f5f5f5',
   },
   centerContainer: {
     flex: 1,
@@ -278,6 +277,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   jobCard: {
+    backgroundColor: '#fff',
     padding: 16,
     borderRadius: 12,
     gap: 8,
@@ -292,6 +292,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 18,
     fontWeight: '600',
+    color: '#1a1a1a',
   },
   statusBadge: {
     flexDirection: 'row',
@@ -304,9 +305,11 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: 12,
     fontWeight: '600',
+    color: '#fff',
   },
   jobLocation: {
     fontSize: 14,
+    color: '#666',
   },
   jobFooter: {
     flexDirection: 'row',
@@ -321,10 +324,12 @@ const styles = StyleSheet.create({
   },
   bidCount: {
     fontSize: 14,
+    color: '#666',
     fontWeight: '500',
   },
   dateText: {
     fontSize: 12,
+    color: '#999',
   },
   emptyContainer: {
     alignItems: 'center',
@@ -333,15 +338,18 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 18,
     fontWeight: '600',
+    color: '#666',
     marginBottom: 8,
   },
   emptySubtext: {
     fontSize: 14,
+    color: '#999',
   },
   reviewSection: {
     marginTop: 12,
     paddingTop: 12,
     borderTopWidth: 1,
+    borderTopColor: '#E5E5E5',
   },
   reviewButton: {
     flexDirection: 'row',
@@ -350,12 +358,15 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingVertical: 8,
     paddingHorizontal: 16,
+    backgroundColor: '#F0F8FF',
     borderRadius: 8,
     borderWidth: 1,
+    borderColor: '#007AFF',
   },
   reviewButtonText: {
     fontSize: 14,
     fontWeight: '600',
+    color: '#007AFF',
   },
   ratingDisplay: {
     flexDirection: 'row',
@@ -364,6 +375,7 @@ const styles = StyleSheet.create({
   },
   ratedText: {
     fontSize: 14,
+    color: '#666',
   },
   starsRow: {
     flexDirection: 'row',

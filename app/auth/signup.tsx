@@ -13,7 +13,6 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
-import { useTheme } from '@/contexts/ThemeContext';
 
 export default function SignUp() {
   const [fullName, setFullName] = useState('');
@@ -24,7 +23,6 @@ export default function SignUp() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { signUp, session, userProfile } = useAuth();
-  const { theme } = useTheme();
   const router = useRouter();
 
   useEffect(() => {
@@ -56,7 +54,7 @@ export default function SignUp() {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={[styles.container, { backgroundColor: theme.colors.background }]}
+      style={styles.container}
     >
       <ScrollView
         contentContainerStyle={styles.scrollContent}
@@ -68,19 +66,18 @@ export default function SignUp() {
             style={styles.logo}
             resizeMode="contain"
           />
-          <Text style={[styles.title, { color: theme.colors.text }]}>Create Account</Text>
+          <Text style={styles.title}>Create Account</Text>
         </View>
 
-        {error ? <Text style={[styles.error, { backgroundColor: theme.colors.errorLight, color: theme.colors.error }]}>{error}</Text> : null}
+        {error ? <Text style={styles.error}>{error}</Text> : null}
 
         <View style={styles.form}>
-          <Text style={[styles.label, { color: theme.colors.text }]}>I am a:</Text>
+          <Text style={styles.label}>I am a:</Text>
           <View style={styles.typeSelector}>
             <TouchableOpacity
               style={[
                 styles.typeButton,
-                { borderColor: theme.colors.border, backgroundColor: theme.colors.card },
-                userType === 'customer' && { borderColor: theme.colors.primary, backgroundColor: theme.colors.primary },
+                userType === 'customer' && styles.typeButtonActive,
               ]}
               onPress={() => setUserType('customer')}
               disabled={loading}
@@ -88,8 +85,7 @@ export default function SignUp() {
               <Text
                 style={[
                   styles.typeButtonText,
-                  { color: theme.colors.textSecondary },
-                  userType === 'customer' && { color: theme.colors.card },
+                  userType === 'customer' && styles.typeButtonTextActive,
                 ]}
               >
                 Customer
@@ -98,8 +94,7 @@ export default function SignUp() {
             <TouchableOpacity
               style={[
                 styles.typeButton,
-                { borderColor: theme.colors.border, backgroundColor: theme.colors.card },
-                userType === 'business' && { borderColor: theme.colors.primary, backgroundColor: theme.colors.primary },
+                userType === 'business' && styles.typeButtonActive,
               ]}
               onPress={() => setUserType('business')}
               disabled={loading}
@@ -107,8 +102,7 @@ export default function SignUp() {
               <Text
                 style={[
                   styles.typeButtonText,
-                  { color: theme.colors.textSecondary },
-                  userType === 'business' && { color: theme.colors.card },
+                  userType === 'business' && styles.typeButtonTextActive,
                 ]}
               >
                 Welding Business
@@ -117,17 +111,15 @@ export default function SignUp() {
           </View>
 
           <TextInput
-            style={[styles.input, { backgroundColor: theme.colors.inputBackground, borderColor: theme.colors.inputBorder, color: theme.colors.text }]}
+            style={styles.input}
             placeholder="Full Name *"
-            placeholderTextColor={theme.colors.placeholderText}
             value={fullName}
             onChangeText={setFullName}
             editable={!loading}
           />
           <TextInput
-            style={[styles.input, { backgroundColor: theme.colors.inputBackground, borderColor: theme.colors.inputBorder, color: theme.colors.text }]}
+            style={styles.input}
             placeholder="Email *"
-            placeholderTextColor={theme.colors.placeholderText}
             value={email}
             onChangeText={setEmail}
             autoCapitalize="none"
@@ -135,18 +127,16 @@ export default function SignUp() {
             editable={!loading}
           />
           <TextInput
-            style={[styles.input, { backgroundColor: theme.colors.inputBackground, borderColor: theme.colors.inputBorder, color: theme.colors.text }]}
+            style={styles.input}
             placeholder="Phone"
-            placeholderTextColor={theme.colors.placeholderText}
             value={phone}
             onChangeText={setPhone}
             keyboardType="phone-pad"
             editable={!loading}
           />
           <TextInput
-            style={[styles.input, { backgroundColor: theme.colors.inputBackground, borderColor: theme.colors.inputBorder, color: theme.colors.text }]}
+            style={styles.input}
             placeholder="Password *"
-            placeholderTextColor={theme.colors.placeholderText}
             value={password}
             onChangeText={setPassword}
             secureTextEntry
@@ -154,14 +144,14 @@ export default function SignUp() {
           />
 
           <TouchableOpacity
-            style={[styles.button, { backgroundColor: theme.colors.primary }, loading && styles.buttonDisabled]}
+            style={[styles.button, loading && styles.buttonDisabled]}
             onPress={handleSignUp}
             disabled={loading}
           >
             {loading ? (
-              <ActivityIndicator color={theme.colors.card} />
+              <ActivityIndicator color="#fff" />
             ) : (
-              <Text style={[styles.buttonText, { color: theme.colors.card }]}>Create Account</Text>
+              <Text style={styles.buttonText}>Create Account</Text>
             )}
           </TouchableOpacity>
 
@@ -169,7 +159,7 @@ export default function SignUp() {
             onPress={() => router.back()}
             disabled={loading}
           >
-            <Text style={[styles.linkText, { color: theme.colors.primary }]}>
+            <Text style={styles.linkText}>
               Already have an account? Sign In
             </Text>
           </TouchableOpacity>
@@ -182,6 +172,7 @@ export default function SignUp() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#f5f5f5',
   },
   scrollContent: {
     flexGrow: 1,
@@ -200,6 +191,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: '700',
+    color: '#1a1a1a',
     marginTop: 8,
   },
   form: {
@@ -208,6 +200,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 16,
     fontWeight: '600',
+    color: '#1a1a1a',
   },
   typeSelector: {
     flexDirection: 'row',
@@ -218,20 +211,33 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 12,
     borderWidth: 2,
+    borderColor: '#e0e0e0',
     alignItems: 'center',
+    backgroundColor: '#fff',
+  },
+  typeButtonActive: {
+    borderColor: '#007AFF',
+    backgroundColor: '#007AFF',
   },
   typeButtonText: {
     fontSize: 16,
     fontWeight: '600',
+    color: '#666',
+  },
+  typeButtonTextActive: {
+    color: '#fff',
   },
   input: {
+    backgroundColor: '#fff',
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderRadius: 12,
     fontSize: 16,
     borderWidth: 1,
+    borderColor: '#e0e0e0',
   },
   button: {
+    backgroundColor: '#007AFF',
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
@@ -241,15 +247,19 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   buttonText: {
+    color: '#fff',
     fontSize: 18,
     fontWeight: '600',
   },
   linkText: {
+    color: '#007AFF',
     textAlign: 'center',
     fontSize: 16,
     marginTop: 8,
   },
   error: {
+    backgroundColor: '#ffebee',
+    color: '#c62828',
     padding: 12,
     borderRadius: 8,
     marginBottom: 16,

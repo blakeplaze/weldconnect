@@ -2,7 +2,6 @@ import React from 'react';
 import { View, Text, StyleSheet, Modal, TouchableOpacity } from 'react-native';
 import { CheckCircle } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
-import { useTheme } from '@/contexts/ThemeContext';
 
 interface ContactSuccessModalProps {
   visible: boolean;
@@ -16,7 +15,6 @@ export default function ContactSuccessModal({
   homeRoute,
 }: ContactSuccessModalProps) {
   const router = useRouter();
-  const { theme } = useTheme();
 
   return (
     <Modal
@@ -26,22 +24,22 @@ export default function ContactSuccessModal({
       onRequestClose={onClose}
     >
       <View style={styles.overlay}>
-        <View style={[styles.content, { backgroundColor: theme.colors.card }]}>
+        <View style={styles.content}>
           <View style={styles.iconContainer}>
-            <CheckCircle size={80} color={theme.colors.success} strokeWidth={2} />
+            <CheckCircle size={80} color="#10b981" strokeWidth={2} />
           </View>
-          <Text style={[styles.title, { color: theme.colors.text }]}>Message Sent!</Text>
-          <Text style={[styles.message, { color: theme.colors.textSecondary }]}>
+          <Text style={styles.title}>Message Sent!</Text>
+          <Text style={styles.message}>
             Thank you for contacting us. We'll get back to you soon.
           </Text>
           <TouchableOpacity
-            style={[styles.button, { backgroundColor: theme.colors.primary }]}
+            style={styles.button}
             onPress={() => {
               onClose();
               router.push(homeRoute as any);
             }}
           >
-            <Text style={[styles.buttonText, { color: theme.colors.card }]}>Go to Home</Text>
+            <Text style={styles.buttonText}>Go to Home</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -58,6 +56,7 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   content: {
+    backgroundColor: '#fff',
     borderRadius: 16,
     padding: 32,
     alignItems: 'center',
@@ -70,22 +69,26 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: '700',
+    color: '#1f2937',
     marginBottom: 12,
     textAlign: 'center',
   },
   message: {
     fontSize: 16,
+    color: '#6b7280',
     textAlign: 'center',
     lineHeight: 24,
     marginBottom: 32,
   },
   button: {
+    backgroundColor: '#2563eb',
     paddingVertical: 14,
     paddingHorizontal: 32,
     borderRadius: 8,
     width: '100%',
   },
   buttonText: {
+    color: '#fff',
     fontSize: 16,
     fontWeight: '600',
     textAlign: 'center',

@@ -11,7 +11,6 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { DollarSign, Clock, CheckCircle, XCircle } from 'lucide-react-native';
-import { useTheme } from '@/contexts/ThemeContext';
 
 interface Bid {
   id: string;
@@ -30,7 +29,6 @@ interface Bid {
 
 export default function MyBids() {
   const { session, loading: authLoading } = useAuth();
-  const { theme } = useTheme();
   const [bids, setBids] = useState<Bid[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -130,11 +128,11 @@ export default function MyBids() {
 
   const getBidStatus = (bid: Bid) => {
     if (bid.job.winning_bid_id === bid.id) {
-      return { text: 'WON', color: theme.colors.success, icon: CheckCircle };
+      return { text: 'WON', color: '#34C759', icon: CheckCircle };
     } else if (bid.job.status === 'awarded') {
-      return { text: 'LOST', color: theme.colors.error, icon: XCircle };
+      return { text: 'LOST', color: '#FF3B30', icon: XCircle };
     } else {
-      return { text: 'PENDING', color: theme.colors.warning, icon: Clock };
+      return { text: 'PENDING', color: '#FF9500', icon: Clock };
     }
   };
 
@@ -143,33 +141,33 @@ export default function MyBids() {
     const StatusIcon = status.icon;
 
     return (
-      <View style={[styles.bidCard, { backgroundColor: theme.colors.card }]}>
+      <View style={styles.bidCard}>
         <View style={styles.bidHeader}>
-          <Text style={[styles.jobTitle, { color: theme.colors.text }]} numberOfLines={1}>
+          <Text style={styles.jobTitle} numberOfLines={1}>
             {item.job.title}
           </Text>
           <View style={[styles.statusBadge, { backgroundColor: status.color }]}>
-            <StatusIcon size={14} color={theme.colors.card} />
-            <Text style={[styles.statusText, { color: theme.colors.card }]}>{status.text}</Text>
+            <StatusIcon size={14} color="#fff" />
+            <Text style={styles.statusText}>{status.text}</Text>
           </View>
         </View>
 
-        <Text style={[styles.jobLocation, { color: theme.colors.textSecondary }]}>
+        <Text style={styles.jobLocation}>
           {item.job.city}, {item.job.state}
         </Text>
 
         <View style={styles.amountContainer}>
-          <DollarSign size={20} color={theme.colors.primary} />
-          <Text style={[styles.amountText, { color: theme.colors.primary }]}>${item.amount.toFixed(2)}</Text>
+          <DollarSign size={20} color="#007AFF" />
+          <Text style={styles.amountText}>${item.amount.toFixed(2)}</Text>
         </View>
 
         {item.notes && (
-          <Text style={[styles.notes, { color: theme.colors.textSecondary }]} numberOfLines={2}>
+          <Text style={styles.notes} numberOfLines={2}>
             {item.notes}
           </Text>
         )}
 
-        <Text style={[styles.dateText, { color: theme.colors.textSecondary }]}>
+        <Text style={styles.dateText}>
           Bid placed: {new Date(item.created_at).toLocaleDateString()}
         </Text>
       </View>
@@ -178,14 +176,14 @@ export default function MyBids() {
 
   if (loading) {
     return (
-      <View style={[styles.centerContainer, { backgroundColor: theme.colors.background }]}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
+      <View style={styles.centerContainer}>
+        <ActivityIndicator size="large" color="#007AFF" />
       </View>
     );
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <View style={styles.container}>
       <FlatList
         data={bids}
         renderItem={renderBid}
@@ -196,8 +194,8 @@ export default function MyBids() {
         }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Text style={[styles.emptyText, { color: theme.colors.textSecondary }]}>No bids placed yet</Text>
-            <Text style={[styles.emptySubtext, { color: theme.colors.textSecondary }]}>
+            <Text style={styles.emptyText}>No bids placed yet</Text>
+            <Text style={styles.emptySubtext}>
               Browse available jobs to place your first bid
             </Text>
           </View>
@@ -210,6 +208,7 @@ export default function MyBids() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#f5f5f5',
   },
   centerContainer: {
     flex: 1,
@@ -221,6 +220,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   bidCard: {
+    backgroundColor: '#fff',
     padding: 16,
     borderRadius: 12,
     gap: 8,
@@ -235,6 +235,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 18,
     fontWeight: '600',
+    color: '#1a1a1a',
   },
   statusBadge: {
     flexDirection: 'row',
@@ -247,9 +248,11 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: 12,
     fontWeight: '600',
+    color: '#fff',
   },
   jobLocation: {
     fontSize: 14,
+    color: '#666',
   },
   amountContainer: {
     flexDirection: 'row',
@@ -260,13 +263,16 @@ const styles = StyleSheet.create({
   amountText: {
     fontSize: 24,
     fontWeight: '700',
+    color: '#007AFF',
   },
   notes: {
     fontSize: 14,
+    color: '#666',
     fontStyle: 'italic',
   },
   dateText: {
     fontSize: 12,
+    color: '#999',
     marginTop: 8,
   },
   emptyContainer: {
@@ -276,10 +282,12 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 18,
     fontWeight: '600',
+    color: '#666',
     marginBottom: 8,
   },
   emptySubtext: {
     fontSize: 14,
+    color: '#999',
     textAlign: 'center',
   },
 });

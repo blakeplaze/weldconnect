@@ -13,7 +13,6 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
-import { useTheme } from '@/contexts/ThemeContext';
 
 export default function ResetPassword() {
   const [password, setPassword] = useState('');
@@ -21,7 +20,6 @@ export default function ResetPassword() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
-  const { theme } = useTheme();
   const router = useRouter();
 
   const handleUpdatePassword = async () => {
@@ -66,7 +64,7 @@ export default function ResetPassword() {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={[styles.container, { backgroundColor: theme.colors.card }]}
+      style={styles.container}
     >
       <ScrollView
         contentContainerStyle={styles.scrollContent}
@@ -78,27 +76,26 @@ export default function ResetPassword() {
             style={styles.logo}
             resizeMode="contain"
           />
-          <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>Create New Password</Text>
+          <Text style={styles.subtitle}>Create New Password</Text>
         </View>
 
-        {error ? <Text style={[styles.error, { backgroundColor: theme.colors.errorLight, color: theme.colors.error }]}>{error}</Text> : null}
+        {error ? <Text style={styles.error}>{error}</Text> : null}
         {success ? (
-          <View style={[styles.successContainer, { backgroundColor: theme.colors.successLight }]}>
-            <Text style={[styles.successText, { color: theme.colors.success }]}>
+          <View style={styles.successContainer}>
+            <Text style={styles.successText}>
               Password updated successfully! Redirecting to login...
             </Text>
           </View>
         ) : null}
 
         <View style={styles.form}>
-          <Text style={[styles.description, { color: theme.colors.textSecondary }]}>
+          <Text style={styles.description}>
             Enter your new password below.
           </Text>
 
           <TextInput
-            style={[styles.input, { backgroundColor: theme.colors.inputBackground, borderColor: theme.colors.inputBorder, color: theme.colors.text }]}
+            style={styles.input}
             placeholder="New Password"
-            placeholderTextColor={theme.colors.placeholderText}
             value={password}
             onChangeText={setPassword}
             secureTextEntry
@@ -106,9 +103,8 @@ export default function ResetPassword() {
           />
 
           <TextInput
-            style={[styles.input, { backgroundColor: theme.colors.inputBackground, borderColor: theme.colors.inputBorder, color: theme.colors.text }]}
+            style={styles.input}
             placeholder="Confirm New Password"
-            placeholderTextColor={theme.colors.placeholderText}
             value={confirmPassword}
             onChangeText={setConfirmPassword}
             secureTextEntry
@@ -116,14 +112,14 @@ export default function ResetPassword() {
           />
 
           <TouchableOpacity
-            style={[styles.button, { backgroundColor: theme.colors.primary }, (loading || success) && styles.buttonDisabled]}
+            style={[styles.button, (loading || success) && styles.buttonDisabled]}
             onPress={handleUpdatePassword}
             disabled={loading || success}
           >
             {loading ? (
-              <ActivityIndicator color={theme.colors.card} />
+              <ActivityIndicator color="#fff" />
             ) : (
-              <Text style={[styles.buttonText, { color: theme.colors.card }]}>Update Password</Text>
+              <Text style={styles.buttonText}>Update Password</Text>
             )}
           </TouchableOpacity>
         </View>
@@ -135,6 +131,7 @@ export default function ResetPassword() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#fff',
   },
   scrollContent: {
     flexGrow: 1,
@@ -153,6 +150,7 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 16,
+    color: '#666',
     marginTop: 8,
   },
   form: {
@@ -160,18 +158,22 @@ const styles = StyleSheet.create({
   },
   description: {
     fontSize: 15,
+    color: '#666',
     textAlign: 'center',
     marginBottom: 8,
     lineHeight: 22,
   },
   input: {
+    backgroundColor: '#f8f8f8',
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderRadius: 12,
     fontSize: 16,
     borderWidth: 1,
+    borderColor: '#e0e0e0',
   },
   button: {
+    backgroundColor: '#007AFF',
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
@@ -181,21 +183,26 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   buttonText: {
+    color: '#fff',
     fontSize: 18,
     fontWeight: '600',
   },
   error: {
+    backgroundColor: '#ffebee',
+    color: '#c62828',
     padding: 12,
     borderRadius: 8,
     marginBottom: 16,
     textAlign: 'center',
   },
   successContainer: {
+    backgroundColor: '#e8f5e9',
     padding: 16,
     borderRadius: 8,
     marginBottom: 16,
   },
   successText: {
+    color: '#2e7d32',
     textAlign: 'center',
     fontSize: 15,
     lineHeight: 22,

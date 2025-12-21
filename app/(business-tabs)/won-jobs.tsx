@@ -15,7 +15,6 @@ import { MapPin, Phone, User, DollarSign, MessageCircle, CheckCircle } from 'luc
 import { useRouter } from 'expo-router';
 import ConfirmModal from '@/components/ConfirmModal';
 import SuccessModal from '@/components/SuccessModal';
-import { useTheme } from '@/contexts/ThemeContext';
 
 interface WonJob {
   id: string;
@@ -39,7 +38,6 @@ interface WonJob {
 export default function WonJobs() {
   const { session, loading: authLoading, userProfile } = useAuth();
   const router = useRouter();
-  const { theme } = useTheme();
   const [wonJobs, setWonJobs] = useState<WonJob[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -221,27 +219,27 @@ export default function WonJobs() {
 
     return (
       <TouchableOpacity
-        style={[styles.jobCard, { backgroundColor: theme.colors.card }]}
+        style={styles.jobCard}
         onPress={() => toggleExpand(item.id)}
         activeOpacity={0.7}
       >
         <View style={styles.jobHeader}>
           <View style={styles.titleContainer}>
-            <Text style={[styles.jobTitle, { color: theme.colors.text }]}>{item.job.title}</Text>
+            <Text style={styles.jobTitle}>{item.job.title}</Text>
             {isCompleted && (
-              <View style={[styles.completedBadge, { backgroundColor: theme.colors.success + '20' }]}>
-                <CheckCircle size={14} color={theme.colors.success} />
-                <Text style={[styles.completedText, { color: theme.colors.success }]}>Completed</Text>
+              <View style={styles.completedBadge}>
+                <CheckCircle size={14} color="#34C759" />
+                <Text style={styles.completedText}>Completed</Text>
               </View>
             )}
           </View>
-          <View style={[styles.amountBadge, { backgroundColor: theme.colors.success + '20' }]}>
-            <DollarSign size={16} color={theme.colors.success} />
-            <Text style={[styles.amountText, { color: theme.colors.success }]}>${item.amount.toFixed(2)}</Text>
+          <View style={styles.amountBadge}>
+            <DollarSign size={16} color="#34C759" />
+            <Text style={styles.amountText}>${item.amount.toFixed(2)}</Text>
           </View>
         </View>
 
-        <Text style={[styles.description, { color: theme.colors.textSecondary }]} numberOfLines={isExpanded ? undefined : 2}>
+        <Text style={styles.description} numberOfLines={isExpanded ? undefined : 2}>
           {item.job.description}
         </Text>
 
@@ -249,16 +247,16 @@ export default function WonJobs() {
           <TouchableOpacity
             style={[
               styles.actionButton,
-              { backgroundColor: theme.colors.primary + '20' },
-              isCompleted && { backgroundColor: theme.colors.textSecondary + '20', opacity: 0.5 }
+              styles.messageButton,
+              isCompleted && styles.messageButtonDisabled
             ]}
             onPress={() => handleMessageCustomer(item)}
             disabled={isCompleted}
           >
-            <MessageCircle size={18} color={isCompleted ? theme.colors.textSecondary : theme.colors.primary} />
+            <MessageCircle size={18} color={isCompleted ? "#999" : "#007AFF"} />
             <Text style={[
               styles.messageButtonText,
-              { color: isCompleted ? theme.colors.textSecondary : theme.colors.primary }
+              isCompleted && styles.messageButtonTextDisabled
             ]}>
               Message Customer
             </Text>
@@ -268,18 +266,18 @@ export default function WonJobs() {
             <TouchableOpacity
               style={[
                 styles.actionButton,
-                { backgroundColor: theme.colors.success },
-                (completingJobId === item.job_id || isCompleted) && { backgroundColor: theme.colors.textSecondary, opacity: 0.5 }
+                styles.completeButton,
+                (completingJobId === item.job_id || isCompleted) && styles.completeButtonDisabled
               ]}
               onPress={() => handleMarkComplete(item)}
               disabled={completingJobId === item.job_id || isCompleted}
             >
               {completingJobId === item.job_id ? (
-                <ActivityIndicator size="small" color={theme.colors.card} />
+                <ActivityIndicator size="small" color="#fff" />
               ) : (
                 <>
-                  <CheckCircle size={18} color={theme.colors.card} />
-                  <Text style={[styles.completeButtonText, { color: theme.colors.card }]}>
+                  <CheckCircle size={18} color="#fff" />
+                  <Text style={styles.completeButtonText}>
                     {isCompleted ? 'Completed' : 'Mark Complete'}
                   </Text>
                 </>
@@ -290,11 +288,11 @@ export default function WonJobs() {
 
         {isExpanded && (
           <View style={styles.detailsContainer}>
-            <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
+            <View style={styles.divider} />
 
             {item.job.job_image_url && (
               <View style={styles.imageContainer}>
-                <Text style={[styles.detailLabel, { color: theme.colors.textSecondary }]}>Job Photo</Text>
+                <Text style={styles.detailLabel}>Job Photo</Text>
                 <Image
                   source={{ uri: item.job.job_image_url }}
                   style={styles.jobImage}
@@ -305,30 +303,30 @@ export default function WonJobs() {
 
             {item.job.address && (
               <View style={styles.detailRow}>
-                <MapPin size={20} color={theme.colors.textSecondary} />
+                <MapPin size={20} color="#666" />
                 <View style={styles.detailContent}>
-                  <Text style={[styles.detailLabel, { color: theme.colors.textSecondary }]}>Address</Text>
-                  <Text style={[styles.detailValue, { color: theme.colors.text }]}>{item.job.address}</Text>
+                  <Text style={styles.detailLabel}>Address</Text>
+                  <Text style={styles.detailValue}>{item.job.address}</Text>
                 </View>
               </View>
             )}
 
             {item.job.contact_name && (
               <View style={styles.detailRow}>
-                <User size={20} color={theme.colors.textSecondary} />
+                <User size={20} color="#666" />
                 <View style={styles.detailContent}>
-                  <Text style={[styles.detailLabel, { color: theme.colors.textSecondary }]}>Contact Name</Text>
-                  <Text style={[styles.detailValue, { color: theme.colors.text }]}>{item.job.contact_name}</Text>
+                  <Text style={styles.detailLabel}>Contact Name</Text>
+                  <Text style={styles.detailValue}>{item.job.contact_name}</Text>
                 </View>
               </View>
             )}
 
             {item.job.contact_phone && (
               <View style={styles.detailRow}>
-                <Phone size={20} color={theme.colors.textSecondary} />
+                <Phone size={20} color="#666" />
                 <View style={styles.detailContent}>
-                  <Text style={[styles.detailLabel, { color: theme.colors.textSecondary }]}>Contact Phone</Text>
-                  <Text style={[styles.detailValue, { color: theme.colors.text }]}>{item.job.contact_phone}</Text>
+                  <Text style={styles.detailLabel}>Contact Phone</Text>
+                  <Text style={styles.detailValue}>{item.job.contact_phone}</Text>
                 </View>
               </View>
             )}
@@ -337,12 +335,12 @@ export default function WonJobs() {
 
         <View style={styles.jobFooter}>
           <View style={styles.locationContainer}>
-            <MapPin size={16} color={theme.colors.textSecondary} />
-            <Text style={[styles.locationText, { color: theme.colors.textSecondary }]}>
+            <MapPin size={16} color="#666" />
+            <Text style={styles.locationText}>
               {item.job.city}, {item.job.state}
             </Text>
           </View>
-          <Text style={[styles.tapText, { color: theme.colors.primary }]}>
+          <Text style={styles.tapText}>
             {isExpanded ? 'Tap to collapse' : 'Tap for details'}
           </Text>
         </View>
@@ -352,14 +350,14 @@ export default function WonJobs() {
 
   if (loading) {
     return (
-      <View style={[styles.centerContainer, { backgroundColor: theme.colors.background }]}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
+      <View style={styles.centerContainer}>
+        <ActivityIndicator size="large" color="#007AFF" />
       </View>
     );
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <View style={styles.container}>
       <FlatList
         data={wonJobs}
         renderItem={renderJob}
@@ -370,8 +368,8 @@ export default function WonJobs() {
         }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Text style={[styles.emptyText, { color: theme.colors.textSecondary }]}>No jobs won yet</Text>
-            <Text style={[styles.emptySubtext, { color: theme.colors.textSecondary }]}>
+            <Text style={styles.emptyText}>No jobs won yet</Text>
+            <Text style={styles.emptySubtext}>
               Keep bidding on available jobs to win projects
             </Text>
           </View>
@@ -402,6 +400,7 @@ export default function WonJobs() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#f5f5f5',
   },
   centerContainer: {
     flex: 1,
@@ -413,6 +412,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   jobCard: {
+    backgroundColor: '#fff',
     padding: 16,
     borderRadius: 12,
     gap: 12,
@@ -430,6 +430,7 @@ const styles = StyleSheet.create({
   jobTitle: {
     fontSize: 18,
     fontWeight: '600',
+    color: '#1a1a1a',
   },
   completedBadge: {
     flexDirection: 'row',
@@ -438,16 +439,19 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     paddingHorizontal: 8,
     paddingVertical: 4,
+    backgroundColor: '#e8f5e9',
     borderRadius: 6,
   },
   completedText: {
     fontSize: 12,
     fontWeight: '600',
+    color: '#34C759',
   },
   amountBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
+    backgroundColor: '#e8f5e9',
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 8,
@@ -455,9 +459,11 @@ const styles = StyleSheet.create({
   amountText: {
     fontSize: 16,
     fontWeight: '700',
+    color: '#34C759',
   },
   description: {
     fontSize: 14,
+    color: '#666',
     lineHeight: 20,
   },
   detailsContainer: {
@@ -465,6 +471,7 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: 1,
+    backgroundColor: '#e0e0e0',
     marginVertical: 8,
   },
   detailRow: {
@@ -477,11 +484,13 @@ const styles = StyleSheet.create({
   },
   detailLabel: {
     fontSize: 12,
+    color: '#999',
     textTransform: 'uppercase',
     fontWeight: '600',
   },
   detailValue: {
     fontSize: 16,
+    color: '#1a1a1a',
   },
   jobFooter: {
     flexDirection: 'row',
@@ -496,9 +505,11 @@ const styles = StyleSheet.create({
   },
   locationText: {
     fontSize: 14,
+    color: '#666',
   },
   tapText: {
     fontSize: 12,
+    color: '#007AFF',
     fontWeight: '500',
   },
   buttonRow: {
@@ -516,13 +527,32 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: 8,
   },
+  messageButton: {
+    backgroundColor: '#F0F8FF',
+  },
+  messageButtonDisabled: {
+    backgroundColor: '#f0f0f0',
+    opacity: 0.5,
+  },
   messageButtonText: {
     fontSize: 16,
     fontWeight: '600',
+    color: '#007AFF',
+  },
+  messageButtonTextDisabled: {
+    color: '#999',
+  },
+  completeButton: {
+    backgroundColor: '#34C759',
+  },
+  completeButtonDisabled: {
+    backgroundColor: '#999',
+    opacity: 0.5,
   },
   completeButtonText: {
     fontSize: 16,
     fontWeight: '600',
+    color: '#fff',
   },
   emptyContainer: {
     alignItems: 'center',
@@ -531,10 +561,12 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 18,
     fontWeight: '600',
+    color: '#666',
     marginBottom: 8,
   },
   emptySubtext: {
     fontSize: 14,
+    color: '#999',
     textAlign: 'center',
   },
   imageContainer: {

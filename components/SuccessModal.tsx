@@ -1,6 +1,5 @@
 import { Modal, View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { CheckCircle } from 'lucide-react-native';
-import { useTheme } from '@/contexts/ThemeContext';
 
 interface SuccessModalProps {
   visible: boolean;
@@ -15,8 +14,6 @@ export default function SuccessModal({
   title,
   message,
 }: SuccessModalProps) {
-  const { theme } = useTheme();
-
   return (
     <Modal
       visible={visible}
@@ -25,19 +22,16 @@ export default function SuccessModal({
       onRequestClose={onClose}
     >
       <View style={styles.overlay}>
-        <View style={[styles.modal, { backgroundColor: theme.colors.card }]}>
+        <View style={styles.modal}>
           <View style={styles.iconContainer}>
-            <CheckCircle size={64} color={theme.colors.success} />
+            <CheckCircle size={64} color="#34C759" />
           </View>
 
-          <Text style={[styles.title, { color: theme.colors.text }]}>{title}</Text>
-          <Text style={[styles.message, { color: theme.colors.textSecondary }]}>{message}</Text>
+          <Text style={styles.title}>{title}</Text>
+          <Text style={styles.message}>{message}</Text>
 
-          <TouchableOpacity
-            style={[styles.button, { backgroundColor: theme.colors.success }]}
-            onPress={onClose}
-          >
-            <Text style={[styles.buttonText, { color: theme.colors.card }]}>Done</Text>
+          <TouchableOpacity style={styles.button} onPress={onClose}>
+            <Text style={styles.buttonText}>Done</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -54,6 +48,7 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   modal: {
+    backgroundColor: '#fff',
     borderRadius: 16,
     padding: 32,
     width: '100%',
@@ -66,16 +61,19 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 22,
     fontWeight: '700',
+    color: '#1a1a1a',
     textAlign: 'center',
     marginBottom: 12,
   },
   message: {
     fontSize: 16,
+    color: '#666',
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: 24,
   },
   button: {
+    backgroundColor: '#34C759',
     paddingVertical: 14,
     paddingHorizontal: 32,
     borderRadius: 8,
@@ -83,6 +81,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   buttonText: {
+    color: '#fff',
     fontSize: 16,
     fontWeight: '600',
   },

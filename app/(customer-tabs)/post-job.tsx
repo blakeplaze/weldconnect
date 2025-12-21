@@ -18,7 +18,6 @@ import JobPostSuccessModal from '@/components/JobPostSuccessModal';
 import { geocodeCity } from '@/lib/geocoding';
 import { pickImage, uploadJobImage } from '@/lib/uploadImage';
 import { Camera, X } from 'lucide-react-native';
-import { useTheme } from '@/contexts/ThemeContext';
 
 const COOLDOWN_MINUTES = 2;
 const COOLDOWN_MS = COOLDOWN_MINUTES * 60 * 1000;
@@ -26,7 +25,6 @@ const COOLDOWN_MS = COOLDOWN_MINUTES * 60 * 1000;
 export default function PostJob() {
   const { session, userProfile, refreshProfile } = useAuth();
   const router = useRouter();
-  const { theme } = useTheme();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [city, setCity] = useState('');
@@ -172,7 +170,7 @@ export default function PostJob() {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={[styles.container, { backgroundColor: theme.colors.background }]}
+      style={styles.container}
     >
       <JobPostSuccessModal
         visible={showSuccessModal}
@@ -188,30 +186,29 @@ export default function PostJob() {
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
       >
-        <View style={[styles.header, { backgroundColor: theme.colors.primary }]}>
-          <Text style={[styles.headerTitle, { color: theme.colors.card }]}>Post a Welding Job</Text>
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>Post a Welding Job</Text>
           <Text style={styles.headerSubtitle}>
             Describe your project and local businesses will bid on it
           </Text>
         </View>
 
         {cooldownRemaining > 0 && (
-          <View style={[styles.cooldownBanner, { backgroundColor: theme.colors.warning + '33', borderLeftColor: theme.colors.warning }]}>
+          <View style={styles.cooldownBanner}>
             <Text style={styles.cooldownText}>
               Next job post available in: {formatCooldownTime(cooldownRemaining)}
             </Text>
           </View>
         )}
 
-        {error ? <Text style={[styles.error, { backgroundColor: theme.colors.error + '20', color: theme.colors.error }]}>{error}</Text> : null}
+        {error ? <Text style={styles.error}>{error}</Text> : null}
 
         <View style={styles.form}>
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: theme.colors.text }]}>Job Title *</Text>
+            <Text style={styles.label}>Job Title *</Text>
             <TextInput
-              style={[styles.input, { backgroundColor: theme.colors.input || theme.colors.card, borderColor: theme.colors.border, color: theme.colors.text }]}
+              style={styles.input}
               placeholder="e.g., Fence Gate Repair"
-              placeholderTextColor={theme.colors.textSecondary}
               value={title}
               onChangeText={setTitle}
               editable={!loading}
@@ -219,11 +216,10 @@ export default function PostJob() {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: theme.colors.text }]}>Description *</Text>
+            <Text style={styles.label}>Description *</Text>
             <TextInput
-              style={[styles.input, styles.textArea, { backgroundColor: theme.colors.input || theme.colors.card, borderColor: theme.colors.border, color: theme.colors.text }]}
+              style={[styles.input, styles.textArea]}
               placeholder="Describe the welding work needed, materials, timeline, etc."
-              placeholderTextColor={theme.colors.textSecondary}
               value={description}
               onChangeText={setDescription}
               multiline
@@ -234,30 +230,30 @@ export default function PostJob() {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: theme.colors.text }]}>Job Photo (Optional)</Text>
+            <Text style={styles.label}>Job Photo (Optional)</Text>
             {selectedImage ? (
               <View style={styles.imagePreviewContainer}>
                 <Image source={{ uri: selectedImage }} style={styles.imagePreview} />
                 <TouchableOpacity
-                  style={[styles.removeImageButton, { backgroundColor: theme.colors.error }]}
+                  style={styles.removeImageButton}
                   onPress={handleRemoveImage}
                   disabled={loading}
                 >
-                  <X size={20} color={theme.colors.card} />
+                  <X size={20} color="#fff" />
                 </TouchableOpacity>
               </View>
             ) : (
               <TouchableOpacity
-                style={[styles.imagePickerButton, { backgroundColor: theme.colors.card, borderColor: theme.colors.primary }]}
+                style={styles.imagePickerButton}
                 onPress={handlePickImage}
                 disabled={loading || uploadingImage}
               >
                 {uploadingImage ? (
-                  <ActivityIndicator size="small" color={theme.colors.primary} />
+                  <ActivityIndicator size="small" color="#007AFF" />
                 ) : (
                   <>
-                    <Camera size={32} color={theme.colors.primary} />
-                    <Text style={[styles.imagePickerText, { color: theme.colors.primary }]}>Add Photo</Text>
+                    <Camera size={32} color="#007AFF" />
+                    <Text style={styles.imagePickerText}>Add Photo</Text>
                   </>
                 )}
               </TouchableOpacity>
@@ -266,22 +262,20 @@ export default function PostJob() {
 
           <View style={styles.row}>
             <View style={[styles.inputGroup, styles.flex1]}>
-              <Text style={[styles.label, { color: theme.colors.text }]}>City *</Text>
+              <Text style={styles.label}>City *</Text>
               <TextInput
-                style={[styles.input, { backgroundColor: theme.colors.input || theme.colors.card, borderColor: theme.colors.border, color: theme.colors.text }]}
+                style={styles.input}
                 placeholder="City"
-                placeholderTextColor={theme.colors.textSecondary}
                 value={city}
                 onChangeText={setCity}
                 editable={!loading}
               />
             </View>
             <View style={[styles.inputGroup, styles.flex1]}>
-              <Text style={[styles.label, { color: theme.colors.text }]}>State *</Text>
+              <Text style={styles.label}>State *</Text>
               <TextInput
-                style={[styles.input, { backgroundColor: theme.colors.input || theme.colors.card, borderColor: theme.colors.border, color: theme.colors.text }]}
+                style={styles.input}
                 placeholder="State"
-                placeholderTextColor={theme.colors.textSecondary}
                 value={state}
                 onChangeText={setState}
                 editable={!loading}
@@ -290,11 +284,10 @@ export default function PostJob() {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: theme.colors.text }]}>Address</Text>
+            <Text style={styles.label}>Address</Text>
             <TextInput
-              style={[styles.input, { backgroundColor: theme.colors.input || theme.colors.card, borderColor: theme.colors.border, color: theme.colors.text }]}
+              style={styles.input}
               placeholder="Full address (shared with winner only)"
-              placeholderTextColor={theme.colors.textSecondary}
               value={address}
               onChangeText={setAddress}
               editable={!loading}
@@ -302,11 +295,10 @@ export default function PostJob() {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: theme.colors.text }]}>Contact Name</Text>
+            <Text style={styles.label}>Contact Name</Text>
             <TextInput
-              style={[styles.input, { backgroundColor: theme.colors.input || theme.colors.card, borderColor: theme.colors.border, color: theme.colors.text }]}
+              style={styles.input}
               placeholder="Contact name (shared with winner only)"
-              placeholderTextColor={theme.colors.textSecondary}
               value={contactName}
               onChangeText={setContactName}
               editable={!loading}
@@ -314,11 +306,10 @@ export default function PostJob() {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: theme.colors.text }]}>Contact Phone</Text>
+            <Text style={styles.label}>Contact Phone</Text>
             <TextInput
-              style={[styles.input, { backgroundColor: theme.colors.input || theme.colors.card, borderColor: theme.colors.border, color: theme.colors.text }]}
+              style={styles.input}
               placeholder="Contact phone (shared with winner only)"
-              placeholderTextColor={theme.colors.textSecondary}
               value={contactPhone}
               onChangeText={setContactPhone}
               keyboardType="phone-pad"
@@ -329,16 +320,15 @@ export default function PostJob() {
           <TouchableOpacity
             style={[
               styles.submitButton,
-              { backgroundColor: theme.colors.primary },
               (loading || cooldownRemaining > 0) && styles.buttonDisabled,
             ]}
             onPress={handleSubmit}
             disabled={loading || cooldownRemaining > 0}
           >
             {loading ? (
-              <ActivityIndicator color={theme.colors.card} />
+              <ActivityIndicator color="#fff" />
             ) : (
-              <Text style={[styles.submitButtonText, { color: theme.colors.card }]}>
+              <Text style={styles.submitButtonText}>
                 {cooldownRemaining > 0
                   ? `Wait ${formatCooldownTime(cooldownRemaining)}`
                   : 'Post Job'}
@@ -354,6 +344,7 @@ export default function PostJob() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#f5f5f5',
   },
   scrollView: {
     flex: 1,
@@ -362,12 +353,14 @@ const styles = StyleSheet.create({
     paddingBottom: 32,
   },
   header: {
+    backgroundColor: '#007AFF',
     padding: 24,
     paddingTop: 32,
   },
   headerTitle: {
     fontSize: 24,
     fontWeight: '700',
+    color: '#fff',
   },
   headerSubtitle: {
     fontSize: 14,
@@ -384,13 +377,16 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 16,
     fontWeight: '600',
+    color: '#1a1a1a',
   },
   input: {
+    backgroundColor: '#fff',
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderRadius: 12,
     fontSize: 16,
     borderWidth: 1,
+    borderColor: '#e0e0e0',
   },
   textArea: {
     minHeight: 120,
@@ -404,6 +400,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   submitButton: {
+    backgroundColor: '#007AFF',
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
@@ -413,10 +410,13 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   submitButtonText: {
+    color: '#fff',
     fontSize: 18,
     fontWeight: '600',
   },
   error: {
+    backgroundColor: '#ffebee',
+    color: '#c62828',
     padding: 12,
     borderRadius: 8,
     margin: 16,
@@ -424,7 +424,9 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   cooldownBanner: {
+    backgroundColor: '#fff3cd',
     borderLeftWidth: 4,
+    borderLeftColor: '#ffc107',
     padding: 16,
     margin: 16,
     marginBottom: 0,
@@ -437,7 +439,9 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   imagePickerButton: {
+    backgroundColor: '#fff',
     borderWidth: 2,
+    borderColor: '#007AFF',
     borderStyle: 'dashed',
     borderRadius: 12,
     padding: 32,
@@ -446,6 +450,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   imagePickerText: {
+    color: '#007AFF',
     fontSize: 16,
     fontWeight: '600',
   },
@@ -463,6 +468,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 8,
     right: 8,
+    backgroundColor: '#FF3B30',
     width: 32,
     height: 32,
     borderRadius: 16,

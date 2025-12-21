@@ -1,6 +1,5 @@
 import { Modal, View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { Award } from 'lucide-react-native';
-import { useTheme } from '@/contexts/ThemeContext';
 
 interface JobAwardConfirmModalProps {
   visible: boolean;
@@ -19,8 +18,6 @@ export default function JobAwardConfirmModal({
   bidCount,
   loading = false,
 }: JobAwardConfirmModalProps) {
-  const { theme } = useTheme();
-
   return (
     <Modal
       visible={visible}
@@ -29,29 +26,29 @@ export default function JobAwardConfirmModal({
       onRequestClose={onClose}
     >
       <View style={styles.overlay}>
-        <View style={[styles.modal, { backgroundColor: theme.colors.card }]}>
+        <View style={styles.modal}>
           <View style={styles.iconContainer}>
-            <Award size={60} color={theme.colors.warning} />
+            <Award size={60} color="#FF9500" />
           </View>
 
-          <Text style={[styles.title, { color: theme.colors.text }]}>Award This Job?</Text>
-          <Text style={[styles.message, { color: theme.colors.text }]}>
+          <Text style={styles.title}>Award This Job?</Text>
+          <Text style={styles.message}>
             The bid closest to the average amount of ${averageAmount.toFixed(2)} will be automatically selected as the winner.
           </Text>
-          <Text style={[styles.infoText, { color: theme.colors.textSecondary }]}>
+          <Text style={styles.infoText}>
             Total bids: {bidCount}
           </Text>
 
           <View style={styles.buttonContainer}>
             <TouchableOpacity
-              style={[styles.confirmButton, { backgroundColor: theme.colors.primary }, loading && styles.buttonDisabled]}
+              style={[styles.confirmButton, loading && styles.buttonDisabled]}
               onPress={onConfirm}
               disabled={loading}
             >
               {loading ? (
-                <ActivityIndicator color={theme.colors.card} />
+                <ActivityIndicator color="#fff" />
               ) : (
-                <Text style={[styles.confirmButtonText, { color: theme.colors.card }]}>Award Job</Text>
+                <Text style={styles.confirmButtonText}>Award Job</Text>
               )}
             </TouchableOpacity>
 
@@ -60,7 +57,7 @@ export default function JobAwardConfirmModal({
               onPress={onClose}
               disabled={loading}
             >
-              <Text style={[styles.cancelButtonText, { color: theme.colors.textSecondary }]}>Cancel</Text>
+              <Text style={styles.cancelButtonText}>Cancel</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -78,6 +75,7 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   modal: {
+    backgroundColor: '#fff',
     borderRadius: 20,
     padding: 32,
     width: '100%',
@@ -90,17 +88,20 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: '700',
+    color: '#1a1a1a',
     textAlign: 'center',
     marginBottom: 12,
   },
   message: {
     fontSize: 16,
+    color: '#333',
     textAlign: 'center',
     lineHeight: 24,
     marginBottom: 8,
   },
   infoText: {
     fontSize: 14,
+    color: '#666',
     textAlign: 'center',
     marginBottom: 32,
   },
@@ -108,11 +109,13 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   confirmButton: {
+    backgroundColor: '#007AFF',
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
   },
   confirmButtonText: {
+    color: '#fff',
     fontSize: 18,
     fontWeight: '600',
   },
@@ -123,6 +126,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   cancelButtonText: {
+    color: '#666',
     fontSize: 18,
     fontWeight: '600',
   },

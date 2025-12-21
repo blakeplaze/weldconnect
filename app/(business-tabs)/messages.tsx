@@ -12,7 +12,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { MessageCircle, Trash2, CheckSquare, Square } from 'lucide-react-native';
-import { useTheme } from '@/contexts/ThemeContext';
 
 interface Conversation {
   id: string;
@@ -30,7 +29,6 @@ interface Conversation {
 export default function MessagesScreen() {
   const { userProfile } = useAuth();
   const router = useRouter();
-  const { theme } = useTheme();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectionMode, setSelectionMode] = useState(false);
@@ -200,8 +198,7 @@ export default function MessagesScreen() {
       <TouchableOpacity
         style={[
           styles.conversationItem,
-          { backgroundColor: theme.colors.card, borderBottomColor: theme.colors.border },
-          isSelected && { backgroundColor: theme.colors.primary + '20' },
+          isSelected && styles.conversationItemSelected,
         ]}
         onPress={() => {
           if (selectionMode) {
@@ -214,7 +211,7 @@ export default function MessagesScreen() {
         {selectionMode && (
           <View style={styles.checkboxContainer}>
             {isSelected ? (
-              <CheckSquare size={24} color={theme.colors.primary} />
+              <CheckSquare size={24} color="#007AFF" />
             ) : (
               <Square size={24} color="#CCC" />
             )}
@@ -222,19 +219,19 @@ export default function MessagesScreen() {
         )}
         <View style={styles.conversationContent}>
           <View style={styles.conversationHeader}>
-            <Text style={[styles.userName, { color: theme.colors.text }]}>{item.other_user_name}</Text>
-            <Text style={[styles.timeText, { color: theme.colors.textSecondary }]}>{formatTime(item.last_message_at)}</Text>
+            <Text style={styles.userName}>{item.other_user_name}</Text>
+            <Text style={styles.timeText}>{formatTime(item.last_message_at)}</Text>
           </View>
-          <Text style={[styles.jobTitle, { color: theme.colors.primary }]} numberOfLines={1}>
+          <Text style={styles.jobTitle} numberOfLines={1}>
             {item.job_title}
           </Text>
           <View style={styles.messagePreview}>
-            <Text style={[styles.lastMessage, { color: theme.colors.textSecondary }]} numberOfLines={1}>
+            <Text style={styles.lastMessage} numberOfLines={1}>
               {item.last_message || 'No messages yet'}
             </Text>
             {item.unread_count > 0 && (
-              <View style={[styles.unreadBadge, { backgroundColor: theme.colors.primary }]}>
-                <Text style={[styles.unreadText, { color: theme.colors.card }]}>{item.unread_count}</Text>
+              <View style={styles.unreadBadge}>
+                <Text style={styles.unreadText}>{item.unread_count}</Text>
               </View>
             )}
           </View>
@@ -245,18 +242,18 @@ export default function MessagesScreen() {
 
   if (loading) {
     return (
-      <View style={[styles.centerContainer, { backgroundColor: theme.colors.background }]}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
+      <View style={styles.centerContainer}>
+        <ActivityIndicator size="large" color="#007AFF" />
       </View>
     );
   }
 
   if (conversations.length === 0) {
     return (
-      <View style={[styles.centerContainer, { backgroundColor: theme.colors.background }]}>
+      <View style={styles.centerContainer}>
         <MessageCircle size={64} color="#CCC" />
-        <Text style={[styles.emptyText, { color: theme.colors.textSecondary }]}>No conversations yet</Text>
-        <Text style={[styles.emptySubtext, { color: theme.colors.textSecondary }]}>
+        <Text style={styles.emptyText}>No conversations yet</Text>
+        <Text style={styles.emptySubtext}>
           Messages will appear here when you start chatting
         </Text>
       </View>
@@ -264,24 +261,24 @@ export default function MessagesScreen() {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <View style={styles.container}>
       {conversations.length > 0 && (
-        <View style={[styles.headerContainer, { backgroundColor: theme.colors.card, borderBottomColor: theme.colors.border }]}>
+        <View style={styles.headerContainer}>
           <TouchableOpacity
             style={styles.selectButton}
             onPress={toggleSelectionMode}
           >
-            <Text style={[styles.selectButtonText, { color: theme.colors.primary }]}>
+            <Text style={styles.selectButtonText}>
               {selectionMode ? 'Cancel' : 'Select'}
             </Text>
           </TouchableOpacity>
           {selectionMode && selectedConversations.size > 0 && (
             <TouchableOpacity
-              style={[styles.deleteButton, { backgroundColor: theme.colors.error }]}
+              style={styles.deleteButton}
               onPress={deleteSelectedConversations}
             >
-              <Trash2 size={20} color={theme.colors.card} />
-              <Text style={[styles.deleteButtonText, { color: theme.colors.card }]}>
+              <Trash2 size={20} color="#FFF" />
+              <Text style={styles.deleteButtonText}>
                 Delete ({selectedConversations.size})
               </Text>
             </TouchableOpacity>
@@ -302,28 +299,28 @@ export default function MessagesScreen() {
         onRequestClose={() => setShowDeleteConfirm(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: theme.colors.card }]}>
-            <Text style={[styles.modalTitle, { color: theme.colors.text }]}>Delete Conversations</Text>
-            <Text style={[styles.modalMessage, { color: theme.colors.textSecondary }]}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Delete Conversations</Text>
+            <Text style={styles.modalMessage}>
               Are you sure you want to delete {selectedConversations.size} conversation{selectedConversations.size > 1 ? 's' : ''}? This will also delete all messages in {selectedConversations.size > 1 ? 'these conversations' : 'this conversation'}.
             </Text>
             <View style={styles.modalButtons}>
               <TouchableOpacity
-                style={[styles.modalCancelButton, { backgroundColor: theme.colors.background }]}
+                style={styles.modalCancelButton}
                 onPress={() => setShowDeleteConfirm(false)}
                 disabled={isDeleting}
               >
-                <Text style={[styles.modalCancelButtonText, { color: theme.colors.textSecondary }]}>Cancel</Text>
+                <Text style={styles.modalCancelButtonText}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.modalDeleteButton, { backgroundColor: theme.colors.error }]}
+                style={styles.modalDeleteButton}
                 onPress={confirmDelete}
                 disabled={isDeleting}
               >
                 {isDeleting ? (
-                  <ActivityIndicator size="small" color={theme.colors.card} />
+                  <ActivityIndicator size="small" color="#FFF" />
                 ) : (
-                  <Text style={[styles.modalDeleteButtonText, { color: theme.colors.card }]}>Delete</Text>
+                  <Text style={styles.modalDeleteButtonText}>Delete</Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -337,20 +334,24 @@ export default function MessagesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#F5F5F5',
   },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#F5F5F5',
     padding: 20,
   },
   headerContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    backgroundColor: '#FFF',
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
+    borderBottomColor: '#E5E5E5',
   },
   selectButton: {
     paddingVertical: 6,
@@ -358,17 +359,20 @@ const styles = StyleSheet.create({
   },
   selectButtonText: {
     fontSize: 16,
+    color: '#007AFF',
     fontWeight: '500',
   },
   deleteButton: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: '#FF3B30',
     paddingVertical: 8,
     paddingHorizontal: 16,
     borderRadius: 8,
     gap: 6,
   },
   deleteButtonText: {
+    color: '#FFF',
     fontSize: 15,
     fontWeight: '600',
   },
@@ -376,10 +380,15 @@ const styles = StyleSheet.create({
     padding: 0,
   },
   conversationItem: {
+    backgroundColor: '#FFF',
     padding: 16,
     borderBottomWidth: 1,
+    borderBottomColor: '#E5E5E5',
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  conversationItemSelected: {
+    backgroundColor: '#F0F8FF',
   },
   checkboxContainer: {
     marginRight: 12,
@@ -396,12 +405,15 @@ const styles = StyleSheet.create({
   userName: {
     fontSize: 17,
     fontWeight: '600',
+    color: '#000',
   },
   timeText: {
     fontSize: 13,
+    color: '#8E8E93',
   },
   jobTitle: {
     fontSize: 14,
+    color: '#007AFF',
     marginBottom: 4,
   },
   messagePreview: {
@@ -411,9 +423,11 @@ const styles = StyleSheet.create({
   },
   lastMessage: {
     fontSize: 15,
+    color: '#8E8E93',
     flex: 1,
   },
   unreadBadge: {
+    backgroundColor: '#007AFF',
     borderRadius: 10,
     minWidth: 20,
     height: 20,
@@ -423,16 +437,19 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   unreadText: {
+    color: '#FFF',
     fontSize: 12,
     fontWeight: '600',
   },
   emptyText: {
     fontSize: 18,
     fontWeight: '600',
+    color: '#666',
     marginTop: 16,
   },
   emptySubtext: {
     fontSize: 15,
+    color: '#999',
     marginTop: 8,
     textAlign: 'center',
   },
@@ -444,6 +461,7 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   modalContent: {
+    backgroundColor: '#FFF',
     borderRadius: 12,
     padding: 24,
     width: '100%',
@@ -452,10 +470,12 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 20,
     fontWeight: '600',
+    color: '#000',
     marginBottom: 12,
   },
   modalMessage: {
     fontSize: 16,
+    color: '#666',
     lineHeight: 24,
     marginBottom: 24,
   },
@@ -468,21 +488,25 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 8,
+    backgroundColor: '#F5F5F5',
     alignItems: 'center',
   },
   modalCancelButtonText: {
     fontSize: 16,
     fontWeight: '600',
+    color: '#666',
   },
   modalDeleteButton: {
     flex: 1,
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 8,
+    backgroundColor: '#FF3B30',
     alignItems: 'center',
   },
   modalDeleteButtonText: {
     fontSize: 16,
     fontWeight: '600',
+    color: '#FFF',
   },
 });

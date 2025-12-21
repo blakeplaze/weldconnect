@@ -14,7 +14,6 @@ import {
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '@/contexts/AuthContext';
-import { useTheme } from '@/contexts/ThemeContext';
 import { supabase } from '@/lib/supabase';
 import { MapPin, DollarSign, X, CheckCircle } from 'lucide-react-native';
 import { calculateDistance, geocodeCity } from '@/lib/geocoding';
@@ -47,7 +46,6 @@ interface Business {
 
 export default function AvailableJobs() {
   const { session, loading: authLoading } = useAuth();
-  const { theme } = useTheme();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [business, setBusiness] = useState<Business | null>(null);
   const [loading, setLoading] = useState(true);
@@ -312,17 +310,17 @@ export default function AvailableJobs() {
 
   if (loading) {
     return (
-      <View style={[styles.centerContainer, { backgroundColor: theme.colors.background }]}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
+      <View style={styles.centerContainer}>
+        <ActivityIndicator size="large" color="#007AFF" />
       </View>
     );
   }
 
   if (!business) {
     return (
-      <View style={[styles.centerContainer, { backgroundColor: theme.colors.background }]}>
-        <Text style={[styles.emptyText, { color: theme.colors.textSecondary }]}>No business profile found</Text>
-        <Text style={[styles.emptySubtext, { color: theme.colors.textSecondary }]}>
+      <View style={styles.centerContainer}>
+        <Text style={styles.emptyText}>No business profile found</Text>
+        <Text style={styles.emptySubtext}>
           Please set up your business profile
         </Text>
       </View>
@@ -331,9 +329,9 @@ export default function AvailableJobs() {
 
   if (!isSubscribed) {
     return (
-      <View style={[styles.centerContainer, { backgroundColor: theme.colors.background }]}>
-        <Text style={[styles.emptyText, { color: theme.colors.textSecondary }]}>Subscription Required</Text>
-        <Text style={[styles.emptySubtext, { color: theme.colors.textSecondary }]}>
+      <View style={styles.centerContainer}>
+        <Text style={styles.emptyText}>Subscription Required</Text>
+        <Text style={styles.emptySubtext}>
           Subscribe to access jobs and place bids
         </Text>
       </View>
@@ -341,23 +339,23 @@ export default function AvailableJobs() {
   }
 
   const renderJob = ({ item }: { item: Job }) => (
-    <View style={[styles.jobCard, { backgroundColor: theme.colors.card }]}>
+    <View style={styles.jobCard}>
       {item.job_image_url && (
         <Image source={{ uri: item.job_image_url }} style={styles.jobImage} />
       )}
-      <Text style={[styles.jobTitle, { color: theme.colors.text }]}>{item.title}</Text>
-      <Text style={[styles.jobDescription, { color: theme.colors.textSecondary }]} numberOfLines={3}>
+      <Text style={styles.jobTitle}>{item.title}</Text>
+      <Text style={styles.jobDescription} numberOfLines={3}>
         {item.description}
       </Text>
       <View style={styles.jobFooter}>
         <View style={styles.locationContainer}>
-          <MapPin size={16} color={theme.colors.textSecondary} />
+          <MapPin size={16} color="#666" />
           <View>
-            <Text style={[styles.locationText, { color: theme.colors.textSecondary }]}>
+            <Text style={styles.locationText}>
               {item.city}, {item.state}
             </Text>
             {item.distance !== undefined && (
-              <Text style={[styles.distanceText, { color: theme.colors.primary }]}>
+              <Text style={styles.distanceText}>
                 {item.distance.toFixed(1)} miles away
               </Text>
             )}
@@ -366,8 +364,7 @@ export default function AvailableJobs() {
         <TouchableOpacity
           style={[
             styles.bidButton,
-            { backgroundColor: theme.colors.primary },
-            item.myBidAmount !== undefined && { backgroundColor: theme.colors.textSecondary, opacity: 0.7 },
+            item.myBidAmount !== undefined && styles.bidButtonDisabled,
           ]}
           onPress={() => openBidModal(item)}
           disabled={item.myBidAmount !== undefined}
@@ -384,7 +381,7 @@ export default function AvailableJobs() {
   );
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <View style={styles.container}>
       <FlatList
         data={jobs}
         renderItem={renderJob}
@@ -395,8 +392,8 @@ export default function AvailableJobs() {
         }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Text style={[styles.emptyText, { color: theme.colors.textSecondary }]}>No jobs available</Text>
-            <Text style={[styles.emptySubtext, { color: theme.colors.textSecondary }]}>
+            <Text style={styles.emptyText}>No jobs available</Text>
+            <Text style={styles.emptySubtext}>
               Check back later for new opportunities in {business.city}
             </Text>
           </View>
@@ -410,28 +407,27 @@ export default function AvailableJobs() {
         onRequestClose={() => setShowBidModal(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: theme.colors.card }]}>
+          <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: theme.colors.text }]}>Place Your Bid</Text>
+              <Text style={styles.modalTitle}>Place Your Bid</Text>
               <TouchableOpacity onPress={() => setShowBidModal(false)}>
-                <X size={24} color={theme.colors.textSecondary} />
+                <X size={24} color="#666" />
               </TouchableOpacity>
             </View>
 
-            <Text style={[styles.jobTitleInModal, { color: theme.colors.textSecondary }]}>{selectedJob?.title}</Text>
+            <Text style={styles.jobTitleInModal}>{selectedJob?.title}</Text>
 
             {bidError ? (
-              <View style={[styles.errorContainer, { backgroundColor: theme.colors.error + '20', borderLeftColor: theme.colors.error }]}>
-                <Text style={[styles.errorText, { color: theme.colors.error }]}>{bidError}</Text>
+              <View style={styles.errorContainer}>
+                <Text style={styles.errorText}>{bidError}</Text>
               </View>
             ) : null}
 
             <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: theme.colors.text }]}>Bid Amount ($) *</Text>
+              <Text style={styles.label}>Bid Amount ($) *</Text>
               <TextInput
-                style={[styles.input, { backgroundColor: theme.colors.input || theme.colors.background, borderColor: theme.colors.border, color: theme.colors.text }]}
+                style={styles.input}
                 placeholder="0.00"
-                placeholderTextColor={theme.colors.textSecondary}
                 value={bidAmount}
                 onChangeText={setBidAmount}
                 keyboardType="decimal-pad"
@@ -440,11 +436,10 @@ export default function AvailableJobs() {
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: theme.colors.text }]}>Notes (Optional)</Text>
+              <Text style={styles.label}>Notes (Optional)</Text>
               <TextInput
-                style={[styles.input, styles.textArea, { backgroundColor: theme.colors.input || theme.colors.background, borderColor: theme.colors.border, color: theme.colors.text }]}
+                style={[styles.input, styles.textArea]}
                 placeholder="Additional details about your bid..."
-                placeholderTextColor={theme.colors.textSecondary}
                 value={bidNotes}
                 onChangeText={setBidNotes}
                 multiline
@@ -457,7 +452,6 @@ export default function AvailableJobs() {
             <TouchableOpacity
               style={[
                 styles.submitButton,
-                { backgroundColor: theme.colors.primary },
                 submittingBid && styles.buttonDisabled,
               ]}
               onPress={submitBid}
@@ -480,10 +474,10 @@ export default function AvailableJobs() {
         onRequestClose={() => setShowSuccessModal(false)}
       >
         <View style={styles.successOverlay}>
-          <View style={[styles.successContent, { backgroundColor: theme.colors.card }]}>
-            <CheckCircle size={64} color={theme.colors.success} />
-            <Text style={[styles.successTitle, { color: theme.colors.text }]}>Bid Submitted!</Text>
-            <Text style={[styles.successMessage, { color: theme.colors.textSecondary }]}>
+          <View style={styles.successContent}>
+            <CheckCircle size={64} color="#34C759" />
+            <Text style={styles.successTitle}>Bid Submitted!</Text>
+            <Text style={styles.successMessage}>
               Your bid has been submitted successfully
             </Text>
           </View>
@@ -496,6 +490,7 @@ export default function AvailableJobs() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#f5f5f5',
   },
   centerContainer: {
     flex: 1,
@@ -508,6 +503,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   jobCard: {
+    backgroundColor: '#fff',
     padding: 16,
     borderRadius: 12,
     gap: 12,
@@ -521,9 +517,11 @@ const styles = StyleSheet.create({
   jobTitle: {
     fontSize: 18,
     fontWeight: '600',
+    color: '#1a1a1a',
   },
   jobDescription: {
     fontSize: 14,
+    color: '#666',
     lineHeight: 20,
   },
   jobFooter: {
@@ -539,15 +537,18 @@ const styles = StyleSheet.create({
   },
   locationText: {
     fontSize: 14,
+    color: '#666',
   },
   distanceText: {
     fontSize: 12,
+    color: '#007AFF',
     marginTop: 2,
   },
   bidButton: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
+    backgroundColor: '#007AFF',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,
@@ -557,6 +558,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   bidButtonDisabled: {
+    backgroundColor: '#999',
     opacity: 0.7,
   },
   emptyContainer: {
@@ -566,11 +568,13 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 18,
     fontWeight: '600',
+    color: '#666',
     marginBottom: 8,
     textAlign: 'center',
   },
   emptySubtext: {
     fontSize: 14,
+    color: '#999',
     textAlign: 'center',
   },
   modalOverlay: {
@@ -579,6 +583,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalContent: {
+    backgroundColor: '#fff',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 20,
@@ -593,19 +598,24 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 20,
     fontWeight: '700',
+    color: '#1a1a1a',
   },
   jobTitleInModal: {
     fontSize: 16,
     fontWeight: '600',
+    color: '#666',
     marginBottom: 20,
   },
   errorContainer: {
+    backgroundColor: '#fee',
     padding: 12,
     borderRadius: 8,
     marginBottom: 16,
     borderLeftWidth: 4,
+    borderLeftColor: '#dc3545',
   },
   errorText: {
+    color: '#dc3545',
     fontSize: 14,
     fontWeight: '600',
   },
@@ -616,19 +626,23 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 16,
     fontWeight: '600',
+    color: '#1a1a1a',
   },
   input: {
+    backgroundColor: '#f5f5f5',
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderRadius: 12,
     fontSize: 16,
     borderWidth: 1,
+    borderColor: '#e0e0e0',
   },
   textArea: {
     minHeight: 100,
     paddingTop: 14,
   },
   submitButton: {
+    backgroundColor: '#007AFF',
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
@@ -649,6 +663,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   successContent: {
+    backgroundColor: '#fff',
     borderRadius: 20,
     padding: 32,
     alignItems: 'center',
@@ -658,9 +673,11 @@ const styles = StyleSheet.create({
   successTitle: {
     fontSize: 24,
     fontWeight: '700',
+    color: '#1a1a1a',
   },
   successMessage: {
     fontSize: 16,
+    color: '#666',
     textAlign: 'center',
   },
 });

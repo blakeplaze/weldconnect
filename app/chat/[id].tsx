@@ -15,7 +15,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Send, ArrowLeft } from 'lucide-react-native';
-import { useTheme } from '@/contexts/ThemeContext';
 
 interface Message {
   id: string;
@@ -40,7 +39,6 @@ export default function ChatScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { userProfile } = useAuth();
   const router = useRouter();
-  const { theme } = useTheme();
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
@@ -261,11 +259,11 @@ export default function ChatScreen() {
       <View
         style={[
           styles.messageContainer,
-          isOwnMessage ? { backgroundColor: theme.colors.primary } : { backgroundColor: '#E9E9EB' },
+          isOwnMessage ? styles.ownMessage : styles.otherMessage,
         ]}
       >
         {!isOwnMessage && (
-          <Text style={[styles.senderName, { color: theme.colors.textSecondary }]}>{item.sender_name}</Text>
+          <Text style={styles.senderName}>{item.sender_name}</Text>
         )}
         {item.image_url && (
           <Image source={{ uri: item.image_url }} style={styles.messageImage} />
@@ -273,30 +271,30 @@ export default function ChatScreen() {
         <Text
           style={[
             styles.messageText,
-            isOwnMessage ? { color: '#FFF' } : { color: theme.colors.text },
+            isOwnMessage ? styles.ownMessageText : styles.otherMessageText,
           ]}
         >
           {item.message_text}
         </Text>
-        <Text style={[styles.messageTime, { color: theme.colors.textSecondary }]}>{formatMessageTime(item.created_at)}</Text>
+        <Text style={styles.messageTime}>{formatMessageTime(item.created_at)}</Text>
       </View>
     );
   };
 
   if (loading) {
     return (
-      <View style={[styles.centerContainer, { backgroundColor: theme.colors.background }]}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
+      <View style={styles.centerContainer}>
+        <ActivityIndicator size="large" color="#007AFF" />
       </View>
     );
   }
 
   if (error) {
     return (
-      <View style={[styles.centerContainer, { backgroundColor: theme.colors.background }]}>
-        <Text style={[styles.errorText, { color: theme.colors.textSecondary }]}>{error}</Text>
+      <View style={styles.centerContainer}>
+        <Text style={styles.errorText}>{error}</Text>
         <TouchableOpacity
-          style={[styles.retryButton, { backgroundColor: theme.colors.primary }]}
+          style={styles.retryButton}
           onPress={() => {
             setLoading(true);
             setError(null);
@@ -324,19 +322,19 @@ export default function ChatScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={[styles.container, { backgroundColor: theme.colors.background }]}
+      style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : Platform.OS === 'android' ? 'height' : undefined}
       keyboardVerticalOffset={0}
     >
-      <View style={[styles.header, { backgroundColor: theme.colors.card, borderBottomColor: theme.colors.border }]}>
+      <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <ArrowLeft size={24} color={theme.colors.primary} />
+          <ArrowLeft size={24} color="#007AFF" />
         </TouchableOpacity>
         <View style={styles.headerContent}>
-          <Text style={[styles.headerTitle, { color: theme.colors.text }]}>
+          <Text style={styles.headerTitle}>
             {conversationDetails?.other_user_name}
           </Text>
-          <Text style={[styles.headerSubtitle, { color: theme.colors.textSecondary }]}>
+          <Text style={styles.headerSubtitle}>
             {conversationDetails?.job_title}
           </Text>
         </View>
@@ -354,13 +352,12 @@ export default function ChatScreen() {
         onLayout={() => flatListRef.current?.scrollToEnd({ animated: false })}
       />
 
-      <View style={[styles.inputContainer, { backgroundColor: theme.colors.card, borderTopColor: theme.colors.border }]}>
+      <View style={styles.inputContainer}>
         <TextInput
-          style={[styles.input, { backgroundColor: theme.colors.input || theme.colors.card, color: theme.colors.text }]}
+          style={styles.input}
           value={newMessage}
           onChangeText={setNewMessage}
           placeholder="Type a message..."
-          placeholderTextColor={theme.colors.textSecondary}
           multiline
           maxLength={1000}
           editable={!sending}
@@ -376,7 +373,7 @@ export default function ChatScreen() {
           }}
         />
         <TouchableOpacity
-          style={[styles.sendButton, { backgroundColor: theme.colors.primary }, sending && styles.sendButtonDisabled]}
+          style={[styles.sendButton, sending && styles.sendButtonDisabled]}
           onPress={sendMessage}
           disabled={sending || !newMessage.trim()}
         >
@@ -394,19 +391,23 @@ export default function ChatScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#F5F5F5',
   },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#F5F5F5',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: '#FFF',
     paddingTop: 56,
     paddingBottom: 12,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
+    borderBottomColor: '#E5E5E5',
   },
   backButton: {
     marginRight: 12,
@@ -417,9 +418,11 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 17,
     fontWeight: '600',
+    color: '#000',
   },
   headerSubtitle: {
     fontSize: 13,
+    color: '#8E8E93',
     marginTop: 2,
   },
   messagesList: {
@@ -434,12 +437,15 @@ const styles = StyleSheet.create({
   },
   ownMessage: {
     alignSelf: 'flex-end',
+    backgroundColor: '#007AFF',
   },
   otherMessage: {
     alignSelf: 'flex-start',
+    backgroundColor: '#E9E9EB',
   },
   senderName: {
     fontSize: 12,
+    color: '#8E8E93',
     marginBottom: 4,
     fontWeight: '600',
   },
@@ -453,18 +459,28 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 20,
   },
+  ownMessageText: {
+    color: '#FFF',
+  },
+  otherMessageText: {
+    color: '#000',
+  },
   messageTime: {
     fontSize: 11,
+    color: '#8E8E93',
     marginTop: 4,
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'flex-end',
     padding: 12,
+    backgroundColor: '#FFF',
     borderTopWidth: 1,
+    borderTopColor: '#E5E5E5',
   },
   input: {
     flex: 1,
+    backgroundColor: '#F5F5F5',
     borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 10,
@@ -473,6 +489,7 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   sendButton: {
+    backgroundColor: '#007AFF',
     width: 36,
     height: 36,
     borderRadius: 18,
@@ -484,10 +501,12 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 16,
+    color: '#666',
     textAlign: 'center',
     marginBottom: 16,
   },
   retryButton: {
+    backgroundColor: '#007AFF',
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 8,
