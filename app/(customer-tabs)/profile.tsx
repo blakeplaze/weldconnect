@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, ActivityIndicator, Alert, TextInput, Switch } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, ActivityIndicator, Alert, TextInput } from 'react-native';
 import { useAuth } from '@/contexts/AuthContext';
-import { useTheme } from '@/contexts/ThemeContext';
 import { useRouter } from 'expo-router';
-import { User, Phone, Mail, LogOut, Camera, DollarSign, Briefcase, Lock, FileText, Moon, Sun } from 'lucide-react-native';
+import { User, Phone, Mail, LogOut, Camera, DollarSign, Briefcase, Lock, FileText } from 'lucide-react-native';
 import { pickImage, updateProfilePicture } from '@/lib/uploadImage';
 import { supabase } from '@/lib/supabase';
 
@@ -14,7 +13,6 @@ interface CustomerStats {
 
 export default function Profile() {
   const { userProfile, session, signOut, refreshProfile } = useAuth();
-  const { theme, themeMode, setThemeMode } = useTheme();
   const router = useRouter();
   const [uploadingImage, setUploadingImage] = useState(false);
   const [stats, setStats] = useState<CustomerStats | null>(null);
@@ -140,7 +138,7 @@ export default function Profile() {
   };
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <ScrollView style={styles.container}>
       <View style={styles.header}>
         <View style={styles.avatarWrapper}>
           <View style={styles.avatarContainer}>
@@ -180,45 +178,45 @@ export default function Profile() {
 
       {!loadingStats && stats && (
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Activity</Text>
+          <Text style={styles.sectionTitle}>Activity</Text>
           <View style={styles.statsRow}>
-            <View style={[styles.statCard, { backgroundColor: theme.colors.card }]}>
-              <View style={[styles.statIconContainer, { backgroundColor: theme.colors.surfaceLight }]}>
+            <View style={styles.statCard}>
+              <View style={styles.statIconContainer}>
                 <DollarSign size={24} color="#34C759" />
               </View>
-              <Text style={[styles.statValue, { color: theme.colors.text }]}>${stats.totalSpent.toFixed(0)}</Text>
-              <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>Total Spent</Text>
+              <Text style={styles.statValue}>${stats.totalSpent.toFixed(0)}</Text>
+              <Text style={styles.statLabel}>Total Spent</Text>
             </View>
 
-            <View style={[styles.statCard, { backgroundColor: theme.colors.card }]}>
-              <View style={[styles.statIconContainer, { backgroundColor: theme.colors.surfaceLight }]}>
+            <View style={styles.statCard}>
+              <View style={styles.statIconContainer}>
                 <Briefcase size={24} color="#007AFF" />
               </View>
-              <Text style={[styles.statValue, { color: theme.colors.text }]}>{stats.activeJobs}</Text>
-              <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>Active Jobs</Text>
+              <Text style={styles.statValue}>{stats.activeJobs}</Text>
+              <Text style={styles.statLabel}>Active Jobs</Text>
             </View>
           </View>
         </View>
       )}
 
       <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Account Information</Text>
+        <Text style={styles.sectionTitle}>Account Information</Text>
 
-        <View style={[styles.infoCard, { backgroundColor: theme.colors.card }]}>
+        <View style={styles.infoCard}>
           <View style={styles.infoRow}>
-            <Mail size={20} color={theme.colors.textSecondary} />
+            <Mail size={20} color="#666" />
             <View style={styles.infoContent}>
-              <Text style={[styles.infoLabel, { color: theme.colors.textMuted }]}>Email</Text>
-              <Text style={[styles.infoValue, { color: theme.colors.text }]}>{session?.user.email}</Text>
+              <Text style={styles.infoLabel}>Email</Text>
+              <Text style={styles.infoValue}>{session?.user.email}</Text>
             </View>
           </View>
 
           {userProfile?.phone && (
             <View style={styles.infoRow}>
-              <Phone size={20} color={theme.colors.textSecondary} />
+              <Phone size={20} color="#666" />
               <View style={styles.infoContent}>
-                <Text style={[styles.infoLabel, { color: theme.colors.textMuted }]}>Phone</Text>
-                <Text style={[styles.infoValue, { color: theme.colors.text }]}>{userProfile.phone}</Text>
+                <Text style={styles.infoLabel}>Phone</Text>
+                <Text style={styles.infoValue}>{userProfile.phone}</Text>
               </View>
             </View>
           )}
@@ -226,39 +224,39 @@ export default function Profile() {
       </View>
 
       <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Security</Text>
+        <Text style={styles.sectionTitle}>Security</Text>
 
         {!changingPassword ? (
           <TouchableOpacity
-            style={[styles.changePasswordButton, { backgroundColor: theme.colors.card, borderColor: theme.colors.primary }]}
+            style={styles.changePasswordButton}
             onPress={() => setChangingPassword(true)}
           >
-            <Lock size={20} color={theme.colors.primary} />
-            <Text style={[styles.changePasswordText, { color: theme.colors.primary }]}>Change Password</Text>
+            <Lock size={20} color="#007AFF" />
+            <Text style={styles.changePasswordText}>Change Password</Text>
           </TouchableOpacity>
         ) : (
-          <View style={[styles.passwordForm, { backgroundColor: theme.colors.card }]}>
+          <View style={styles.passwordForm}>
             <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: theme.colors.text }]}>New Password</Text>
+              <Text style={styles.label}>New Password</Text>
               <TextInput
-                style={[styles.input, { backgroundColor: theme.colors.inputBackground, borderColor: theme.colors.inputBorder, color: theme.colors.text }]}
+                style={styles.input}
                 value={newPassword}
                 onChangeText={setNewPassword}
                 placeholder="Enter new password"
-                placeholderTextColor={theme.colors.placeholderText}
+                placeholderTextColor="#999"
                 secureTextEntry
                 editable={!updatingPassword}
               />
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: theme.colors.text }]}>Confirm Password</Text>
+              <Text style={styles.label}>Confirm Password</Text>
               <TextInput
-                style={[styles.input, { backgroundColor: theme.colors.inputBackground, borderColor: theme.colors.inputBorder, color: theme.colors.text }]}
+                style={styles.input}
                 value={confirmPassword}
                 onChangeText={setConfirmPassword}
                 placeholder="Confirm new password"
-                placeholderTextColor={theme.colors.placeholderText}
+                placeholderTextColor="#999"
                 secureTextEntry
                 editable={!updatingPassword}
               />
@@ -266,7 +264,7 @@ export default function Profile() {
 
             <View style={styles.passwordActions}>
               <TouchableOpacity
-                style={[styles.passwordButton, styles.savePasswordButton, { backgroundColor: theme.colors.primary }]}
+                style={[styles.passwordButton, styles.savePasswordButton]}
                 onPress={handleChangePassword}
                 disabled={updatingPassword}
               >
@@ -278,7 +276,7 @@ export default function Profile() {
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[styles.passwordButton, styles.cancelPasswordButton, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}
+                style={[styles.passwordButton, styles.cancelPasswordButton]}
                 onPress={() => {
                   setChangingPassword(false);
                   setCurrentPassword('');
@@ -287,7 +285,7 @@ export default function Profile() {
                 }}
                 disabled={updatingPassword}
               >
-                <Text style={[styles.cancelPasswordButtonText, { color: theme.colors.textSecondary }]}>Cancel</Text>
+                <Text style={styles.cancelPasswordButtonText}>Cancel</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -295,45 +293,18 @@ export default function Profile() {
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Appearance</Text>
-        <View style={[styles.themeCard, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
-          <View style={styles.themeRow}>
-            <View style={styles.themeIconContainer}>
-              {themeMode === 'dark' ? (
-                <Moon size={20} color={theme.colors.primary} />
-              ) : (
-                <Sun size={20} color={theme.colors.primary} />
-              )}
-            </View>
-            <View style={styles.themeContent}>
-              <Text style={[styles.themeLabel, { color: theme.colors.text }]}>Dark Mode</Text>
-              <Text style={[styles.themeDescription, { color: theme.colors.textSecondary }]}>
-                {themeMode === 'dark' ? 'Dark theme enabled' : 'Light theme enabled'}
-              </Text>
-            </View>
-            <Switch
-              value={themeMode === 'dark'}
-              onValueChange={(value) => setThemeMode(value ? 'dark' : 'light')}
-              trackColor={{ false: '#d1d5db', true: theme.colors.primary }}
-              thumbColor="#fff"
-            />
-          </View>
-        </View>
-      </View>
-
-      <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Legal</Text>
+        <Text style={styles.sectionTitle}>Legal</Text>
         <TouchableOpacity
-          style={[styles.privacyButton, { backgroundColor: theme.colors.card, borderColor: theme.colors.primary }]}
+          style={styles.privacyButton}
           onPress={() => router.push('/privacy-policy')}
         >
-          <FileText size={20} color={theme.colors.primary} />
-          <Text style={[styles.privacyText, { color: theme.colors.primary }]}>Privacy Policy</Text>
+          <FileText size={20} color="#007AFF" />
+          <Text style={styles.privacyText}>Privacy Policy</Text>
         </TouchableOpacity>
       </View>
 
       <View style={styles.section}>
-        <TouchableOpacity style={[styles.signOutButton, { backgroundColor: theme.colors.card }]} onPress={handleSignOut}>
+        <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
           <LogOut size={20} color="#FF3B30" />
           <Text style={styles.signOutText}>Sign Out</Text>
         </TouchableOpacity>
@@ -560,34 +531,5 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#007AFF',
-  },
-  themeCard: {
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-  },
-  themeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  themeIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#f0f0f0',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  themeContent: {
-    flex: 1,
-    gap: 4,
-  },
-  themeLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  themeDescription: {
-    fontSize: 13,
   },
 });

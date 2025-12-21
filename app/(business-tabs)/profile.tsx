@@ -10,14 +10,12 @@ import {
   Alert,
   Platform,
   Image,
-  Switch,
 } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
 import { useAuth } from '@/contexts/AuthContext';
-import { useTheme } from '@/contexts/ThemeContext';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'expo-router';
-import { Building2, MapPin, Mail, Phone, LogOut, CheckCircle, Camera, Trophy, TrendingUp, DollarSign, Globe, Lock, Star, FileText, Moon, Sun } from 'lucide-react-native';
+import { Building2, MapPin, Mail, Phone, LogOut, CheckCircle, Camera, Trophy, TrendingUp, DollarSign, Globe, Lock, Star, FileText } from 'lucide-react-native';
 import { geocodeCity } from '@/lib/geocoding';
 import { pickImage, updateProfilePicture } from '@/lib/uploadImage';
 
@@ -57,7 +55,6 @@ interface BusinessStats {
 
 export default function BusinessProfile() {
   const { userProfile, session, signOut, loading: authLoading, refreshProfile } = useAuth();
-  const { theme, themeMode, setThemeMode } = useTheme();
   const router = useRouter();
   const [business, setBusiness] = useState<Business | null>(null);
   const [stats, setStats] = useState<BusinessStats | null>(null);
@@ -386,7 +383,7 @@ export default function BusinessProfile() {
     new Date(business.subscription_expires_at) > new Date();
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <ScrollView style={styles.container}>
       <View style={styles.header}>
         <View style={styles.avatarWrapper}>
           <View style={styles.avatarContainer}>
@@ -841,33 +838,6 @@ export default function BusinessProfile() {
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Appearance</Text>
-        <View style={[styles.themeCard, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
-          <View style={styles.themeRow}>
-            <View style={styles.themeIconContainer}>
-              {themeMode === 'dark' ? (
-                <Moon size={20} color={theme.colors.primary} />
-              ) : (
-                <Sun size={20} color={theme.colors.primary} />
-              )}
-            </View>
-            <View style={styles.themeContent}>
-              <Text style={[styles.themeLabel, { color: theme.colors.text }]}>Dark Mode</Text>
-              <Text style={[styles.themeDescription, { color: theme.colors.textSecondary }]}>
-                {themeMode === 'dark' ? 'Dark theme enabled' : 'Light theme enabled'}
-              </Text>
-            </View>
-            <Switch
-              value={themeMode === 'dark'}
-              onValueChange={(value) => setThemeMode(value ? 'dark' : 'light')}
-              trackColor={{ false: '#d1d5db', true: theme.colors.primary }}
-              thumbColor="#fff"
-            />
-          </View>
-        </View>
-      </View>
-
-      <View style={styles.section}>
         <Text style={styles.sectionTitle}>Legal</Text>
         <TouchableOpacity
           style={styles.privacyButton}
@@ -1299,34 +1269,5 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#007AFF',
-  },
-  themeCard: {
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-  },
-  themeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  themeIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#f0f0f0',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  themeContent: {
-    flex: 1,
-    gap: 4,
-  },
-  themeLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  themeDescription: {
-    fontSize: 13,
   },
 });

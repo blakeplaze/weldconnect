@@ -4,14 +4,12 @@ import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 import { AuthProvider } from '@/contexts/AuthContext';
-import { ThemeProvider, useTheme } from '@/contexts/ThemeContext';
 import { useNotifications } from '@/hooks/useNotifications';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
 function RootLayoutContent() {
-  const { themeMode } = useTheme();
   useNotifications();
 
   // Safety timeout: ensure splash screen is always hidden after 5 seconds (aggressive for first launch)
@@ -39,7 +37,7 @@ function RootLayoutContent() {
         <Stack.Screen name="privacy-policy" />
         <Stack.Screen name="+not-found" />
       </Stack>
-      <StatusBar style={themeMode === 'dark' ? 'light' : 'dark'} />
+      <StatusBar style="auto" />
     </>
   );
 }
@@ -50,9 +48,7 @@ export default function RootLayout() {
   return (
     <ErrorBoundary>
       <AuthProvider>
-        <ThemeProvider>
-          <RootLayoutContent />
-        </ThemeProvider>
+        <RootLayoutContent />
       </AuthProvider>
     </ErrorBoundary>
   );
