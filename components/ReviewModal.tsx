@@ -47,17 +47,13 @@ export default function ReviewModal({
     setError('');
 
     try {
-      const { error: submitError } = await supabase
-        .from('reviews')
-        .insert({
-          job_id: jobId,
-          business_id: businessId,
-          customer_id: customerId,
-          rating,
-          review_text: reviewText.trim(),
-        });
-
-      if (submitError) throw submitError;
+      await localDb.createReview({
+        job_id: jobId,
+        reviewer_id: customerId,
+        reviewee_id: businessId,
+        rating,
+        comment: reviewText.trim(),
+      });
 
       setRating(0);
       setReviewText('');

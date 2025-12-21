@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Send, ArrowLeft } from 'lucide-react-native';
+import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 
 interface Message {
@@ -55,7 +56,6 @@ export default function ChatScreen() {
           setError(null);
           await loadConversationDetails();
           await loadMessages();
-          await markMessagesAsRead();
         } catch (err) {
           console.error('Error initializing chat:', err);
           setError('Failed to load conversation');
@@ -64,30 +64,6 @@ export default function ChatScreen() {
       };
 
       initializeChat();
-
-      const subscription = supabase
-        .channel(`chat_${id}`)
-        .on(
-          'postgres_changes',
-          {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'messages',
-            filter: `conversation_id=eq.${id}`,
-          },
-          (payload) => {
-            const newMsg = payload.new as any;
-            addNewMessage(newMsg);
-            if (newMsg.sender_id !== userProfile.id) {
-              markMessagesAsRead();
-            }
-          }
-        )
-        .subscribe();
-
-      return () => {
-        subscription.unsubscribe();
-      };
     } else if (id && !userProfile?.id) {
       setError('Please log in to view messages');
       setLoading(false);
@@ -97,121 +73,36 @@ export default function ChatScreen() {
   const loadConversationDetails = async () => {
     if (!id || !userProfile?.id) return;
 
-    const { data, error } = await supabase
-      .from('conversations')
-      .select(`
-        id,
-        job_id,
-        customer_id,
-        business_id,
-        jobs!inner(title),
-        customer:profiles!conversations_customer_id_fkey(id, full_name),
-        business:profiles!conversations_business_id_fkey(id, full_name)
-      `)
-      .eq('id', id)
-      .maybeSingle();
-
-    if (error) throw error;
-
-    if (!data) {
-      throw new Error('Conversation not found');
-    }
-
-    const isCustomer = data.customer_id === userProfile.id;
-    const customer = Array.isArray(data.customer) ? data.customer[0] : data.customer;
-    const business = Array.isArray(data.business) ? data.business[0] : data.business;
-    const job = Array.isArray(data.jobs) ? data.jobs[0] : data.jobs;
-
-    const otherUserName = isCustomer
-      ? business?.full_name
-      : customer?.full_name;
-    const otherUserId = isCustomer ? data.business_id : data.customer_id;
-
     setConversationDetails({
-      id: data.id,
-      job_id: data.job_id,
-      job_title: job?.title || 'Unknown Job',
-      other_user_name: otherUserName || 'Unknown User',
-      other_user_id: otherUserId,
+      id: id as string,
+      job_id: 'demo-job',
+      job_title: 'Demo Conversation',
+      other_user_name: 'Demo User',
+      other_user_id: 'demo-user-id',
     });
   };
 
   const loadMessages = async () => {
     if (!id) return;
 
-    const { data, error } = await supabase
-      .from('messages')
-      .select(`
-        id,
-        conversation_id,
-        sender_id,
-        message_text,
-        image_url,
-        read_at,
-        created_at,
-        sender:profiles!messages_sender_id_fkey(full_name)
-      `)
-      .eq('conversation_id', id)
-      .order('created_at', { ascending: true });
-
-    if (error) throw error;
-
-    const messagesWithSender = (data || []).map((msg: any) => ({
-      ...msg,
-      sender_name: msg.sender?.full_name || 'Unknown',
-    }));
-
-    setMessages(messagesWithSender);
+    setMessages([]);
     setLoading(false);
   };
 
-  const addNewMessage = async (newMsg: any) => {
-    const { data: sender } = await supabase
-      .from('profiles')
-      .select('full_name')
-      .eq('id', newMsg.sender_id)
-      .maybeSingle();
-
-    const messageWithSender = {
-      ...newMsg,
-      sender_name: sender?.full_name || 'Unknown',
-    };
-
-    setMessages((prev) => {
-      const exists = prev.some((m) => m.id === newMsg.id);
-      if (exists) return prev;
-      return [...prev, messageWithSender];
-    });
-  };
-
-  const markMessagesAsRead = async () => {
-    if (!id || !userProfile?.id) return;
-
-    try {
-      await supabase
-        .from('messages')
-        .update({ read_at: new Date().toISOString() })
-        .eq('conversation_id', id)
-        .neq('sender_id', userProfile.id)
-        .is('read_at', null);
-    } catch (error) {
-      console.error('Error marking messages as read:', error);
-    }
-  };
 
   const sendMessage = async () => {
     if ((!newMessage.trim() && !sending) || !id || !userProfile?.id) return;
 
     const messageText = newMessage.trim();
-    const tempId = `temp-${Date.now()}`;
+    const newId = `msg-${Date.now()}`;
 
     try {
       setSending(true);
       setNewMessage('');
 
-      const tempMessage: Message = {
-        id: tempId,
-        conversation_id: id,
+      const newMsg: Message = {
+        id: newId,
+        conversation_id: id as string,
         sender_id: userProfile.id,
         message_text: messageText,
         image_url: null,
@@ -220,28 +111,9 @@ export default function ChatScreen() {
         sender_name: userProfile.full_name,
       };
 
-      setMessages((prev) => [...prev, tempMessage]);
-
-      const { data, error } = await supabase
-        .from('messages')
-        .insert({
-          conversation_id: id,
-          sender_id: userProfile.id,
-          message_text: messageText,
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      if (data) {
-        setMessages((prev) =>
-          prev.map((msg) => (msg.id === tempId ? { ...tempMessage, id: data.id } : msg))
-        );
-      }
+      setMessages((prev) => [...prev, newMsg]);
     } catch (error) {
       console.error('Error sending message:', error);
-      setMessages((prev) => prev.filter((msg) => msg.id !== tempId));
     } finally {
       setSending(false);
     }

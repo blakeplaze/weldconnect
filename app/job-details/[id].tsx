@@ -69,52 +69,39 @@ export default function JobDetails() {
 
   const loadJobDetails = async () => {
     try {
-      const { data: jobData, error: jobError } = await supabase
-        .from('jobs')
-        .select('*')
-        .eq('id', id)
-        .single();
+      const jobData = await localDb.getJob(id as string);
 
-      if (jobError) throw jobError;
+      if (!jobData) {
+        setJob(null);
+        setLoading(false);
+        return;
+      }
+
       setJob(jobData);
 
-      const { data: bidsData, error: bidsError } = await supabase
-        .from('bids')
-        .select(
-          `
-          id,
-          amount,
-          notes,
-          created_at,
-          business_id,
-          business:businesses(business_name, owner_id)
-        `
-        )
-        .eq('job_id', id)
-        .order('amount', { ascending: true });
-
-      if (bidsError) throw bidsError;
-
+      const bidsData = await localDb.getApplications({ job_id: id as string });
       const normalizedBids = await Promise.all((bidsData || []).map(async (bid: any) => {
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('average_rating, review_count')
-          .eq('id', Array.isArray(bid.business) ? bid.business[0].owner_id : bid.business.owner_id)
-          .maybeSingle();
+        const profile = await localDb.getProfile(bid.business_id);
 
         return {
-          ...bid,
-          business: Array.isArray(bid.business) ? bid.business[0] : bid.business,
-          average_rating: profileData?.average_rating || 0,
-          review_count: profileData?.review_count || 0,
+          id: bid.id,
+          amount: bid.bid_amount,
+          notes: bid.message,
+          created_at: bid.created_at,
+          business_id: bid.business_id,
+          business: {
+            business_name: profile?.full_name || 'Unknown',
+            owner_id: bid.business_id,
+          },
+          average_rating: profile?.rating || 0,
+          review_count: profile?.completed_jobs || 0,
         };
       }));
 
       setBids(normalizedBids);
 
-      // Check if there's a winning bid and get business info
-      if (jobData.winning_bid_id) {
-        const winningBidData = normalizedBids.find(b => b.id === jobData.winning_bid_id);
+      if ((jobData as any).winning_bid_id) {
+        const winningBidData = normalizedBids.find(b => b.id === (jobData as any).winning_bid_id);
         if (winningBidData) {
           setWinningBusiness({
             id: winningBidData.business.owner_id,
@@ -122,19 +109,13 @@ export default function JobDetails() {
           });
         }
 
-        // Check if customer has already left a review
-        const { data: reviewData } = await supabase
-          .from('reviews')
-          .select('id')
-          .eq('job_id', id)
-          .eq('customer_id', userProfile?.id)
-          .maybeSingle();
-
-        setHasReview(!!reviewData);
+        const reviewsData = await localDb.getReviews({ reviewee_id: userProfile?.id || '' });
+        const jobReview = reviewsData.find(r => r.job_id === id);
+        setHasReview(!!jobReview);
       }
     } catch (err) {
       console.error('Error loading job details:', err);
-      Alert.alert('Error', 'Failed to load job details');
+      setJob(null);
     } finally {
       setLoading(false);
     }
