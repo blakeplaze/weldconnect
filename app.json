@@ -1,0 +1,89 @@
+{
+  "expo": {
+    "name": "WeldConnect - Mobile Welding Network",
+    "slug": "weldconnect",
+    "version": "1.0.3",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "myapp",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "description": "WeldConnect is the premier mobile welding services marketplace connecting customers with certified professional welders and metal fabrication specialists. Find portable welding, on-site welding services, emergency welding repairs, custom metal fabrication, steel fabrication, and industrial welding services near you. Post welding jobs, receive competitive bids from local welding contractors, and hire the best welder for your project - all in one easy-to-use platform.",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "fast.weldingservice",
+      "keywords": [
+        "welding",
+        "welding services",
+        "mobile welder",
+        "portable welding",
+        "welder near me",
+        "metal fabrication",
+        "steel fabrication",
+        "on-site welding",
+        "emergency welding",
+        "welding contractor",
+        "welding jobs",
+        "metal work",
+        "fabrication services",
+        "professional welder",
+        "welding quotes",
+        "welding bids",
+        "hire welder",
+        "custom fabrication",
+        "industrial welding",
+        "mobile welding",
+        "welding repair",
+        "certified welder",
+        "local welder",
+        "welding marketplace",
+        "metal repair"
+      ]
+    },
+    "android": {
+      "package": "fast.weldingservice",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "permissions": [
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE"
+      ]
+    },
+    "notification": {
+      "icon": "./assets/images/icon.png",
+      "color": "#007AFF"
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single",
+      "favicon": "./assets/images/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      "expo-web-browser",
+      "expo-secure-store",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/icon.png",
+          "color": "#007AFF"
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "220fa6ec-9809-40bc-bd1c-8b6a6f7afe74"
+      },
+      "EXPO_PUBLIC_SUPABASE_URL": "https://fydoqyuttiodmrlfsuxk.supabase.co",
+      "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5ZG9xeXV0dGlvZG1ybGZzdXhrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU0NzQxOTMsImV4cCI6MjA4MTA1MDE5M30.og6llNq54X1LUl05usWWU0OHjgTo_TjOxrVzyUaHkm4"
+    }
+  }
+}
