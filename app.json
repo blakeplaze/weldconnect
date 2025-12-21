@@ -63,16 +63,7 @@
     },
     "plugins": [
       "expo-router",
-      "expo-font",
-      "expo-web-browser",
-      "expo-secure-store",
-      [
-        "expo-notifications",
-        {
-          "icon": "./assets/images/icon.png",
-          "color": "#007AFF"
-        }
-      ]
+      "expo-font"
     ],
     "experiments": {
       "typedRoutes": true
@@ -81,9 +72,7 @@
       "router": {},
       "eas": {
         "projectId": "220fa6ec-9809-40bc-bd1c-8b6a6f7afe74"
-      },
-      "EXPO_PUBLIC_SUPABASE_URL": "https://fydoqyuttiodmrlfsuxk.supabase.co",
-      "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5ZG9xeXV0dGlvZG1ybGZzdXhrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU0NzQxOTMsImV4cCI6MjA4MTA1MDE5M30.og6llNq54X1LUl05usWWU0OHjgTo_TjOxrVzyUaHkm4"
+      }
     }
   }
 }
