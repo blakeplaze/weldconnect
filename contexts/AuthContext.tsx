@@ -11,6 +11,8 @@ interface UserProfile {
   user_type: 'customer' | 'business';
   last_job_posted_at: string | null;
   profile_picture_url: string | null;
+  rating?: number;
+  completed_jobs?: number;
 }
 
 interface AuthContextType {
@@ -21,6 +23,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  updateProfilePicture: (imageUri: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -120,6 +123,46 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const refreshProfile = async () => {
+    if (!userProfile) return;
+
+    try {
+      if (Platform.OS === 'web') {
+        const savedUser = localStorage.getItem('weldconnect_user');
+        if (savedUser) {
+          const profile = JSON.parse(savedUser);
+          setUserProfile(profile);
+        }
+      } else {
+        const savedUser = await SecureStore.getItemAsync('weldconnect_user');
+        if (savedUser) {
+          const profile = JSON.parse(savedUser);
+          setUserProfile(profile);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to refresh profile', error);
+    }
+  };
+
+  const updateProfilePicture = async (imageUri: string) => {
+    if (!userProfile) return;
+
+    const updatedProfile = {
+      ...userProfile,
+      profile_picture_url: imageUri,
+    };
+
+    setUserProfile(updatedProfile);
+
+    try {
+      if (Platform.OS === 'web') {
+        localStorage.setItem('weldconnect_user', JSON.stringify(updatedProfile));
+      } else {
+        await SecureStore.setItemAsync('weldconnect_user', JSON.stringify(updatedProfile));
+      }
+    } catch (error) {
+      console.error('Failed to update profile picture', error);
+    }
   };
 
   return (
@@ -132,6 +175,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         signIn,
         signOut,
         refreshProfile,
+        updateProfilePicture,
       }}
     >
       {children}

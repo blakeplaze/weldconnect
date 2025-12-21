@@ -13,6 +13,7 @@ import {
   Switch,
 } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
+import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useRouter } from 'expo-router';
@@ -54,7 +55,7 @@ interface BusinessStats {
 }
 
 export default function BusinessProfile() {
-  const { userProfile, session, signOut, loading: authLoading, refreshProfile } = useAuth();
+  const { userProfile, session, signOut, loading: authLoading, refreshProfile, updateProfilePicture } = useAuth();
   const { theme, themeMode, setThemeMode } = useTheme();
   const router = useRouter();
   const [business, setBusiness] = useState<Business | null>(null);
@@ -260,6 +261,28 @@ export default function BusinessProfile() {
     }
   };
 
+  const pickImage = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+    if (status !== 'granted') {
+      Alert.alert('Permission Denied', 'We need permission to access your photos');
+      return null;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    if (result.canceled) {
+      return null;
+    }
+
+    return result.assets[0];
+  };
+
   const handleUploadProfilePicture = async () => {
     if (!session?.user.id) return;
 
@@ -268,8 +291,7 @@ export default function BusinessProfile() {
       const image = await pickImage();
 
       if (image) {
-        await updateProfilePicture(session.user.id, image.uri);
-        await refreshProfile();
+        await updateProfilePicture(image.uri);
         Alert.alert('Success', 'Profile picture updated successfully');
       }
     } catch (error: any) {
