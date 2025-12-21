@@ -3,48 +3,27 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
-import { AuthProvider } from '@/contexts/AuthContext';
-import { useNotifications } from '@/hooks/useNotifications';
-import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
-setTimeout(() => {
-  console.log('Fallback: Forcing splash screen to hide after 8 seconds');
-  SplashScreen.hideAsync().catch(() => {});
-}, 8000);
+export default function RootLayout() {
+  useFrameworkReady();
 
-function RootLayoutContent() {
-  useNotifications();
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      SplashScreen.hideAsync().catch(() => {});
+    }, 2000);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   return (
     <>
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="index" />
-        <Stack.Screen name="auth/login" />
-        <Stack.Screen name="auth/signup" />
-        <Stack.Screen name="auth/forgot-password" />
-        <Stack.Screen name="auth/reset-password" />
-        <Stack.Screen name="(customer-tabs)" />
-        <Stack.Screen name="(business-tabs)" />
-        <Stack.Screen name="job-details/[id]" />
-        <Stack.Screen name="chat/[id]" />
-        <Stack.Screen name="privacy-policy" />
         <Stack.Screen name="+not-found" />
       </Stack>
       <StatusBar style="auto" />
     </>
-  );
-}
-
-export default function RootLayout() {
-  useFrameworkReady();
-
-  return (
-    <ErrorBoundary>
-      <AuthProvider>
-        <RootLayoutContent />
-      </AuthProvider>
-    </ErrorBoundary>
   );
 }
