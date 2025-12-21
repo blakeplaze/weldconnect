@@ -9,12 +9,13 @@ import {
   TouchableOpacity,
   Image,
 } from 'react-native';
-import { CheckCircle } from 'lucide-react-native';
+import { CheckCircle, DollarSign, MessageCircle, MapPin, User, Phone } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import ConfirmModal from '@/components/ConfirmModal';
 import SuccessModal from '@/components/SuccessModal';
 import { useTheme } from '@/contexts/ThemeContext';
+import { supabase } from '@/lib/supabase';
 
 interface WonJob {
   id: string;
