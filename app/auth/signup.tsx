@@ -9,7 +9,6 @@ import {
   Platform,
   ScrollView,
   ActivityIndicator,
-  Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
@@ -81,11 +80,7 @@ export default function SignUp() {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.logoContainer}>
-          <Image
-            source={require('@/assets/images/image.png')}
-            style={styles.logo}
-            resizeMode="contain"
-          />
+          <Text style={[styles.logo, { color: theme.colors.primary }]}>WeldConnect</Text>
           <Text style={[styles.title, { color: theme.colors.text }]}>Create Account</Text>
         </View>
 
@@ -232,9 +227,9 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   logo: {
-    width: 280,
-    height: 70,
-    marginBottom: 12,
+    fontSize: 36,
+    fontWeight: '700',
+    marginBottom: 8,
   },
   title: {
     fontSize: 28,
