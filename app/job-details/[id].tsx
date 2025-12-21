@@ -22,15 +22,25 @@ interface Job {
   id: string;
   title: string;
   description: string;
-  city: string;
-  state: string;
-  address: string | null;
-  contact_name: string | null;
-  contact_phone: string | null;
+  location: string;
+  city?: string;
+  state?: string;
+  address?: string | null;
+  contact_name?: string | null;
+  contact_phone?: string | null;
   status: string;
-  winning_bid_id: string | null;
+  winning_bid_id?: string | null;
   created_at: string;
-  job_image_url: string | null;
+  job_image_url?: string | null;
+  image_urls?: string[] | null;
+  budget_min?: number;
+  budget_max?: number;
+  latitude?: number | null;
+  longitude?: number | null;
+  category?: string | null;
+  urgency?: string | null;
+  deadline?: string | null;
+  customer_id?: string;
 }
 
 interface Bid {
@@ -137,24 +147,8 @@ export default function JobDetails() {
   const confirmAwardJob = async () => {
     setAwarding(true);
     try {
-      throw new Error('Job awarding is not available in demo mode');
-
-      const winningBidId = data?.[0]?.v_winner_bid_id;
-      const winningBidAmount = data?.[0]?.v_winner_amount;
-
-      if (winningBidId) {
-        const winningBidData = bids.find(b => b.id === winningBidId);
-        if (winningBidData) {
-          setWinningBid({
-            businessName: winningBidData.business.business_name,
-            amount: winningBidAmount || winningBidData.amount,
-          });
-        }
-      }
-
+      Alert.alert('Not Available', 'Job awarding is not available in demo mode');
       setShowConfirmModal(false);
-      setShowSuccessModal(true);
-      await loadJobDetails();
     } catch (err: any) {
       console.error('Error awarding job:', err);
       setShowConfirmModal(false);
@@ -167,31 +161,8 @@ export default function JobDetails() {
     if (!userProfile?.id || !job?.id) return;
 
     try {
-      const { data: existingConversation, error: findError } = await supabase
-        .from('conversations')
-        .select('id')
-        .eq('job_id', job.id)
-        .eq('business_id', bid.business.owner_id)
-        .maybeSingle();
-
-      if (findError) throw findError;
-
-      if (existingConversation) {
-        router.push(`/chat/${existingConversation.id}`);
-      } else {
-        const { data: newConversation, error: createError } = await supabase
-          .from('conversations')
-          .insert({
-            job_id: job.id,
-            customer_id: userProfile.id,
-            business_id: bid.business.owner_id,
-          })
-          .select('id')
-          .single();
-
-        if (createError) throw createError;
-        router.push(`/chat/${newConversation.id}`);
-      }
+      console.log('Message business feature - to be implemented');
+      Alert.alert('Coming Soon', 'Messaging feature will be available soon');
     } catch (error) {
       console.error('Error opening conversation:', error);
     }
@@ -241,7 +212,7 @@ export default function JobDetails() {
         <View style={styles.locationRow}>
           <MapPin size={16} color={theme.colors.textSecondary} />
           <Text style={[styles.location, { color: theme.colors.textSecondary, marginLeft: 4 }]}>
-            {job.city}, {job.state}
+            {job.location}
           </Text>
         </View>
       </View>
@@ -285,7 +256,7 @@ export default function JobDetails() {
                 <View style={styles.bidHeader}>
                   <View style={styles.businessInfo}>
                     <Text style={[styles.businessName, { color: theme.colors.text }]}>{bid.business.business_name}</Text>
-                    {bid.review_count > 0 && (
+                    {(bid.review_count || 0) > 0 && (
                       <View style={styles.ratingRow}>
                         <View style={styles.starsContainer}>
                           {[1, 2, 3, 4, 5].map((star) => (

@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useRouter } from 'expo-router';
 import { User, Phone, Mail, LogOut, DollarSign, Briefcase, Lock, FileText, Moon, Sun, Camera } from 'lucide-react-native';
+import { localDb } from '@/lib/localDb';
 
 interface CustomerStats {
   totalSpent: number;
@@ -31,30 +32,19 @@ export default function Profile() {
 
   const loadCustomerStats = async (userId: string) => {
     try {
-      const { data: jobs, error: jobsError } = await supabase
-        .from('jobs')
-        .select('id, status, winning_bid_id')
-        .eq('customer_id', userId);
+      const jobs = await localDb.getJobs({ customer_id: userId });
 
-      if (jobsError) throw jobsError;
+      const activeJobs = jobs.filter(
+        j => j.status === 'open' || j.status === 'in_progress'
+      ).length;
 
-      const activeJobs = jobs?.filter(
-        j => j.status === 'open' || j.status === 'awaiting_completion'
-      ).length || 0;
-
-      const completedJobsWithWinners = jobs?.filter(j => j.winning_bid_id !== null) || [];
+      const applications = await localDb.getApplications({});
+      const acceptedApps = applications.filter(app => app.status === 'accepted');
 
       let totalSpent = 0;
-      if (completedJobsWithWinners.length > 0) {
-        const winningBidIds = completedJobsWithWinners.map(j => j.winning_bid_id);
-        const { data: bids, error: bidsError } = await supabase
-          .from('bids')
-          .select('id, amount')
-          .in('id', winningBidIds);
-
-        if (bidsError) throw bidsError;
-
-        totalSpent = bids?.reduce((sum, bid) => sum + Number(bid.amount), 0) || 0;
+      for (const job of jobs) {
+        const jobApps = acceptedApps.filter(app => app.job_id === job.id);
+        totalSpent += jobApps.reduce((sum, app) => sum + app.bid_amount, 0);
       }
 
       setStats({

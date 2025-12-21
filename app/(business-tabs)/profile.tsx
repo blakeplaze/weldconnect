@@ -17,6 +17,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useRouter } from 'expo-router';
 import { Building2, MapPin, Mail, Phone, LogOut, CheckCircle, Trophy, TrendingUp, DollarSign, Globe, Lock, Star, FileText, Moon, Sun, Camera } from 'lucide-react-native';
+import { localDb } from '@/lib/localDb';
 
 interface Review {
   id: string;
@@ -92,35 +93,32 @@ export default function BusinessProfile() {
 
   const loadBusiness = async (userId: string) => {
     try {
-      console.log('Profile: Querying businesses for owner_id:', userId);
-      const { data, error } = await supabase
-        .from('businesses')
-        .select('*')
-        .eq('owner_id', userId)
-        .maybeSingle();
+      console.log('Profile: Loading mock business for user:', userId);
 
-      console.log('Profile: Query result:', { data, error });
+      const mockBusiness: Business = {
+        id: userId,
+        business_name: userProfile?.full_name || 'My Business',
+        city: 'Austin',
+        state: 'TX',
+        description: 'Professional welding services',
+        website: null,
+        is_subscribed: true,
+        subscription_expires_at: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+        radius_miles: 25,
+        latitude: 30.2672,
+        longitude: -97.7431,
+      };
 
-      if (error) {
-        console.error('Profile: Query error:', error);
-        setLoading(false);
-        return;
-      }
-
-      if (data) {
-        setBusiness(data);
-        setBusinessName(data.business_name);
-        setCity(data.city);
-        setState(data.state);
-        setDescription(data.description || '');
-        setWebsite(data.website || '');
-        setRadiusMiles(data.radius_miles || 25);
-        setEditing(false);
-        loadBusinessStats(data.id);
-        loadReviews(userId);
-      } else {
-        setEditing(true);
-      }
+      setBusiness(mockBusiness);
+      setBusinessName(mockBusiness.business_name);
+      setCity(mockBusiness.city);
+      setState(mockBusiness.state);
+      setDescription(mockBusiness.description || '');
+      setWebsite(mockBusiness.website || '');
+      setRadiusMiles(mockBusiness.radius_miles || 25);
+      setEditing(false);
+      loadBusinessStats(mockBusiness.id);
+      loadReviews(userId);
     } catch (err) {
       console.error('Error loading business:', err);
     } finally {
@@ -130,23 +128,27 @@ export default function BusinessProfile() {
 
   const loadReviews = async (userId: string) => {
     try {
-      const { data, error } = await supabase
-        .from('reviews')
-        .select(`
-          id,
-          rating,
-          review_text,
-          created_at,
-          customer:profiles!reviews_customer_id_fkey(full_name),
-          jobs(title)
-        `)
-        .eq('business_id', userId)
-        .order('created_at', { ascending: false })
-        .limit(10);
+      const reviewsData = await localDb.getReviews({ reviewee_id: userId });
 
-      if (error) throw error;
+      const normalizedReviews = await Promise.all(reviewsData.map(async (review) => {
+        const customer = await localDb.getProfile(review.reviewer_id);
+        const job = await localDb.getJob(review.job_id);
 
-      setReviews(data as any || []);
+        return {
+          id: review.id,
+          rating: review.rating,
+          review_text: review.comment,
+          created_at: review.created_at,
+          customer: {
+            full_name: customer?.full_name || 'Unknown',
+          },
+          jobs: {
+            title: job?.title || 'Unknown Job',
+          },
+        };
+      }));
+
+      setReviews(normalizedReviews as any);
     } catch (err) {
       console.error('Error loading reviews:', err);
     }
@@ -154,32 +156,16 @@ export default function BusinessProfile() {
 
   const loadBusinessStats = async (businessId: string) => {
     try {
-      const { data: bids, error: bidsError } = await supabase
-        .from('bids')
-        .select('id, amount, job_id')
-        .eq('business_id', businessId);
+      const applications = await localDb.getApplications({ business_id: businessId });
 
-      if (bidsError) throw bidsError;
+      const totalBids = applications.length;
 
-      const totalBids = bids?.length || 0;
-
-      const bidAmounts = bids?.map(b => Number(b.amount)) || [];
+      const bidAmounts = applications.map(app => Number(app.bid_amount));
       const averageBidAmount = bidAmounts.length > 0
         ? bidAmounts.reduce((sum, amt) => sum + amt, 0) / bidAmounts.length
         : 0;
 
-      let jobsWon = 0;
-      if (bids && bids.length > 0) {
-        const bidIds = bids.map(b => b.id);
-        const { data: wonJobs, error: wonJobsError } = await supabase
-          .from('jobs')
-          .select('id, winning_bid_id')
-          .not('winning_bid_id', 'is', null)
-          .in('winning_bid_id', bidIds);
-
-        if (wonJobsError) throw wonJobsError;
-        jobsWon = wonJobs?.length || 0;
-      }
+      const jobsWon = applications.filter(app => app.status === 'accepted').length;
 
       const acceptanceRate = totalBids > 0 ? (jobsWon / totalBids) * 100 : 0;
 
@@ -202,29 +188,19 @@ export default function BusinessProfile() {
 
     setSaving(true);
     try {
-      const coords = await geocodeCity(city.trim().toLowerCase(), state.trim().toUpperCase());
-
       if (business) {
-        const { error } = await supabase
-          .from('businesses')
-          .update({
-            business_name: businessName,
-            city: city.trim().toLowerCase(),
-            state: state.trim().toUpperCase(),
-            description,
-            website: website.trim() || null,
-            radius_miles: radiusMiles,
-            latitude: coords?.latitude || null,
-            longitude: coords?.longitude || null,
-          })
-          .eq('id', business.id);
-
-        if (error) throw error;
-      } else {
-        throw new Error('Business profile creation is not available in demo mode');
+        setBusiness({
+          ...business,
+          business_name: businessName,
+          city: city.trim().toLowerCase(),
+          state: state.trim().toUpperCase(),
+          description,
+          website: website.trim() || null,
+          radius_miles: radiusMiles,
+        });
       }
 
-      Alert.alert('Success', 'Business profile saved successfully');
+      Alert.alert('Success', 'Business profile saved successfully (demo mode)');
       if (session) {
         await loadBusiness(session.user.id);
       }
@@ -255,7 +231,7 @@ export default function BusinessProfile() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${authSession.access_token}`,
+          'Authorization': `Bearer ${session?.access_token}`,
         },
         body: JSON.stringify({
           price_id: 'price_1SdFlq4ZBWOAXTA3OetSbVpL',
@@ -433,25 +409,25 @@ export default function BusinessProfile() {
       {business && !editing && userProfile && (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Customer Reviews</Text>
-          {userProfile.review_count > 0 ? (
+          {(userProfile.rating || 0) > 0 ? (
             <>
               <View style={styles.ratingSummary}>
                 <View style={styles.ratingScore}>
                   <Text style={styles.ratingNumber}>
-                    {userProfile.average_rating?.toFixed(1) || '0.0'}
+                    {userProfile.rating?.toFixed(1) || '0.0'}
                   </Text>
                   <View style={styles.starsDisplay}>
                     {[1, 2, 3, 4, 5].map((star) => (
                       <Star
                         key={star}
                         size={20}
-                        color={star <= (userProfile.average_rating || 0) ? '#FFD700' : '#CCC'}
-                        fill={star <= (userProfile.average_rating || 0) ? '#FFD700' : 'none'}
+                        color={star <= (userProfile.rating || 0) ? '#FFD700' : '#CCC'}
+                        fill={star <= (userProfile.rating || 0) ? '#FFD700' : 'none'}
                       />
                     ))}
                   </View>
                   <Text style={styles.reviewCount}>
-                    Based on {userProfile.review_count} {userProfile.review_count === 1 ? 'review' : 'reviews'}
+                    Based on {userProfile.completed_jobs || 0} {(userProfile.completed_jobs || 0) === 1 ? 'review' : 'reviews'}
                   </Text>
                 </View>
               </View>
