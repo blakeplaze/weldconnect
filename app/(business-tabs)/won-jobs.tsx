@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { CheckCircle } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
+import { useAuth } from '@/contexts/AuthContext';
 import ConfirmModal from '@/components/ConfirmModal';
 import SuccessModal from '@/components/SuccessModal';
 import { useTheme } from '@/contexts/ThemeContext';
