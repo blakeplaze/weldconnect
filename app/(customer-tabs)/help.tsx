@@ -11,7 +11,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { ChevronDown, ChevronUp, Mail, HelpCircle } from 'lucide-react-native';
+import { ChevronDown, ChevronUp, Mail, HelpCircle, Trash2, Clock } from 'lucide-react-native';
 import ContactSuccessModal from '@/components/ContactSuccessModal';
 import DeleteAccountModal from '@/components/DeleteAccountModal';
 import { useAuth } from '@/contexts/AuthContext';
