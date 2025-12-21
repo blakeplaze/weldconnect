@@ -17,14 +17,11 @@ if (!supabaseUrl || !supabaseAnonKey) {
   );
 }
 
-// Cache to reduce SecureStore calls
-const storageCache = new Map<string, string | null>();
-
-const withTimeout = <T>(promise: Promise<T>, timeoutMs: number = 10000): Promise<T | null> => {
+const withTimeout = <T>(promise: Promise<T>, timeoutMs: number = 5000): Promise<T | null> => {
   return Promise.race([
     promise,
     new Promise<null>((resolve) => setTimeout(() => {
-      // Only warn if it's taking unusually long (not on every timeout)
+      console.warn('SecureStore operation timed out');
       resolve(null);
     }, timeoutMs))
   ]);
@@ -39,17 +36,9 @@ const ExpoSecureStoreAdapter = {
         }
         return localStorage.getItem(key);
       }
-      
-      // Check cache first
-      if (storageCache.has(key)) {
-        return storageCache.get(key) || null;
-      }
-      
-      const result = await withTimeout(SecureStore.getItemAsync(key), 10000);
-      
-      // Cache the result
-      storageCache.set(key, result);
-      
+      console.log(`SecureStore: Getting item ${key}`);
+      const result = await withTimeout(SecureStore.getItemAsync(key));
+      console.log(`SecureStore: Got item ${key}:`, result ? 'exists' : 'null');
       return result;
     } catch (error) {
       console.error(`SecureStore: Error getting item ${key}:`, error);
@@ -64,16 +53,9 @@ const ExpoSecureStoreAdapter = {
         }
         return;
       }
-      // Update cache immediately
-      storageCache.set(key, value);
-      // Store asynchronously (don't wait for it)
-      withTimeout(SecureStore.setItemAsync(key, value), 10000).catch(() => {
-        // If it fails, remove from cache so we retry next time
-        storageCache.delete(key);
-      });
+      await withTimeout(SecureStore.setItemAsync(key, value));
     } catch (error) {
       console.error('Error setting item in secure store:', error);
-      storageCache.delete(key);
     }
   },
   removeItem: async (key: string) => {
@@ -84,10 +66,7 @@ const ExpoSecureStoreAdapter = {
         }
         return;
       }
-      // Remove from cache immediately
-      storageCache.delete(key);
-      // Remove asynchronously
-      await withTimeout(SecureStore.deleteItemAsync(key), 10000);
+      await withTimeout(SecureStore.deleteItemAsync(key));
     } catch (error) {
       console.error('Error removing item from secure store:', error);
     }

@@ -39,38 +39,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const initAuth = async () => {
       try {
         console.log('AuthContext: Starting auth initialization');
-        
-        // Immediately hide splash screen if this takes too long (aggressive timeout for first launch)
-        const quickTimeout = setTimeout(() => {
-          if (mounted) {
-            console.warn('AuthContext: Quick timeout - hiding splash screen early');
-            SplashScreen.hideAsync().catch(() => {});
-          }
-        }, 3000); // Hide splash after 3 seconds even if auth isn't done
-        
-        // Add timeout wrapper for getSession to prevent hanging
-        const sessionPromise = supabase.auth.getSession();
-        const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('getSession timeout')), 5000) // Reduced from 8s to 5s
-        );
-        
-        let sessionResult;
-        try {
-          sessionResult = await Promise.race([sessionPromise, timeoutPromise]) as any;
-          clearTimeout(quickTimeout);
-        } catch (timeoutError) {
-          clearTimeout(quickTimeout);
-          console.error('AuthContext: getSession timed out or failed:', timeoutError);
-          if (mounted) {
-            setLoading(false);
-            setInitialized(true);
-            // Force hide splash screen immediately on timeout
-            await SplashScreen.hideAsync().catch(() => {});
-          }
-          return;
-        }
-        
-        const { data: { session }, error } = sessionResult;
+        const { data: { session }, error } = await supabase.auth.getSession();
         console.log('AuthContext: getSession completed', { hasSession: !!session, hasError: !!error });
 
         if (!mounted) return;
@@ -80,8 +49,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           if (mounted) {
             setLoading(false);
             setInitialized(true);
-            // Force hide splash screen on error
-            await SplashScreen.hideAsync().catch(() => {});
+            SplashScreen.hideAsync().catch(() => {});
           }
           return;
         }
@@ -89,48 +57,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setSession(session);
         if (session) {
           console.log('AuthContext: Session found, loading profile');
-          try {
-            await loadUserProfile(session.user.id);
-          } catch (profileError) {
-            console.error('AuthContext: Error loading profile, continuing anyway:', profileError);
-            // Continue even if profile loading fails
-            if (mounted) {
-              setLoading(false);
-              // Force hide splash screen on profile error
-              await SplashScreen.hideAsync().catch(() => {});
-            }
-          }
+          await loadUserProfile(session.user.id);
         } else {
           console.log('AuthContext: No session, showing login');
-          if (mounted) {
-            setLoading(false);
-            // Force hide splash screen when no session
-            await SplashScreen.hideAsync().catch(() => {});
-          }
+          setLoading(false);
+          SplashScreen.hideAsync().catch(() => {});
         }
-        if (mounted) {
-          setInitialized(true);
-        }
+        setInitialized(true);
       } catch (error) {
         console.error('Error initializing auth:', error);
         if (mounted) {
           setLoading(false);
           setInitialized(true);
-          // Force hide splash screen on any error
-          await SplashScreen.hideAsync().catch(() => {});
+          SplashScreen.hideAsync().catch(() => {});
         }
       }
     };
 
     timeoutId = setTimeout(() => {
       if (mounted && loading && !initialized) {
-        console.warn('Auth initialization taking longer than expected - forcing loading to false');
+        console.error('Auth initialization timeout (5s) - forcing loading to false');
         setLoading(false);
         setInitialized(true);
-        // Force hide splash screen on final timeout
         SplashScreen.hideAsync().catch(() => {});
       }
-    }, 10000); // Reduced from 15s to 10s
+    }, 5000);
 
     initAuth();
 
@@ -182,51 +133,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const loadUserProfile = async (userId: string) => {
     try {
       console.log('Loading profile for user:', userId);
-      
-      // Add timeout to profile loading to prevent hanging
-      const profilePromise = supabase
+      const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .maybeSingle();
-      
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Profile query timeout')), 10000)
-      );
-      
-      let profileResult;
-      try {
-        profileResult = await Promise.race([profilePromise, timeoutPromise]) as any;
-      } catch (timeoutError) {
-        console.error('Profile query timed out:', timeoutError);
-        // Set loading to false even on timeout
-        setLoading(false);
-        SplashScreen.hideAsync().catch(() => {});
-        throw timeoutError;
-      }
-
-      const { data, error } = profileResult;
 
       console.log('Profile data:', data);
       console.log('Profile error:', error);
 
       if (error) {
         console.error('Profile query error:', error);
-        // Don't throw - allow app to continue without profile
-        setUserProfile(null);
-        setLoading(false);
-        SplashScreen.hideAsync().catch(() => {});
-        return;
+        throw error;
       }
 
       if (!data) {
         console.warn('No profile found for user:', userId);
-        setUserProfile(null);
-      } else {
-        setUserProfile(data);
       }
 
-      // Register push notifications in background (don't wait for it)
+      setUserProfile(data);
+
       (async () => {
         try {
           const pushToken = await registerForPushNotificationsAsync();
@@ -235,19 +161,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
         } catch (notifError) {
           console.error('Error registering push notifications:', notifError);
-          // Don't block app initialization for notification errors
         }
       })();
-      
-      setLoading(false);
-      SplashScreen.hideAsync().catch(() => {});
     } catch (error) {
       console.error('Error loading profile:', error);
-      // Ensure loading is set to false and splash screen is hidden even on error
+    } finally {
+      console.log('Setting loading to false');
       setLoading(false);
       SplashScreen.hideAsync().catch(() => {});
-      // Re-throw so caller can handle it
-      throw error;
     }
   };
 

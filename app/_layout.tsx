@@ -9,18 +9,13 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
+setTimeout(() => {
+  console.log('Fallback: Forcing splash screen to hide after 8 seconds');
+  SplashScreen.hideAsync().catch(() => {});
+}, 8000);
+
 function RootLayoutContent() {
   useNotifications();
-
-  // Safety timeout: ensure splash screen is always hidden after 5 seconds (aggressive for first launch)
-  useEffect(() => {
-    const safetyTimeout = setTimeout(() => {
-      console.warn('RootLayout: Safety timeout - forcing splash screen to hide');
-      SplashScreen.hideAsync().catch(() => {});
-    }, 5000); // Reduced from 20s to 5s for faster first launch experience
-
-    return () => clearTimeout(safetyTimeout);
-  }, []);
 
   return (
     <>

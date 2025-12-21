@@ -20,7 +20,7 @@ export default function Index() {
     return <Redirect href="/auth/login" />;
   }
 
-  if (!userProfile && loading) {
+  if (!userProfile) {
     console.log('Index: No user profile yet, showing loading');
     return (
       <View style={styles.container}>
@@ -28,13 +28,6 @@ export default function Index() {
         <Text style={{ marginTop: 16 }}>Loading profile...</Text>
       </View>
     );
-  }
-
-  // If we have a session but no profile after loading completes, redirect to login
-  // This handles cases where profile loading failed
-  if (!userProfile && session) {
-    console.log('Index: Session exists but no profile, redirecting to login');
-    return <Redirect href="/auth/login" />;
   }
 
   if (userProfile.user_type === 'business') {
