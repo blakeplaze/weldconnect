@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, ActivityIn
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useRouter } from 'expo-router';
-import { User, Phone, Mail, LogOut, DollarSign, Briefcase, Lock, FileText, Moon, Sun } from 'lucide-react-native';
+import { User, Phone, Mail, LogOut, DollarSign, Briefcase, Lock, FileText, Moon, Sun, Camera } from 'lucide-react-native';
 
 interface CustomerStats {
   totalSpent: number;

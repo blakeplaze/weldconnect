@@ -16,7 +16,7 @@ import * as WebBrowser from 'expo-web-browser';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useRouter } from 'expo-router';
-import { Building2, MapPin, Mail, Phone, LogOut, CheckCircle, Trophy, TrendingUp, DollarSign, Globe, Lock, Star, FileText, Moon, Sun } from 'lucide-react-native';
+import { Building2, MapPin, Mail, Phone, LogOut, CheckCircle, Trophy, TrendingUp, DollarSign, Globe, Lock, Star, FileText, Moon, Sun, Camera } from 'lucide-react-native';
 
 interface Review {
   id: string;
