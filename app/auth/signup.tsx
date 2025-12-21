@@ -9,6 +9,7 @@ import {
   Platform,
   ScrollView,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
@@ -22,8 +23,7 @@ export default function SignUp() {
   const [userType, setUserType] = useState<'customer' | 'business'>('customer');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
-  const { signUp, signInWithGoogle, session, userProfile } = useAuth();
+  const { signUp, session, userProfile } = useAuth();
   const { theme } = useTheme();
   const router = useRouter();
 
@@ -53,23 +53,6 @@ export default function SignUp() {
     }
   };
 
-  const handleGoogleSignUp = async () => {
-    if (Platform.OS === 'web') {
-      setError('Google Sign-In is not available in preview environments. Please use email/password sign-up instead.');
-      return;
-    }
-
-    setError('');
-    setGoogleLoading(true);
-    try {
-      await signInWithGoogle(userType);
-    } catch (err: any) {
-      console.error('Google sign-up failed:', err);
-      setError(err.message || 'Failed to sign up with Google');
-      setGoogleLoading(false);
-    }
-  };
-
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -80,7 +63,11 @@ export default function SignUp() {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.logoContainer}>
-          <Text style={[styles.logo, { color: theme.colors.primary }]}>WeldConnect</Text>
+          <Image
+            source={require('@/assets/images/image.png')}
+            style={styles.logo}
+            resizeMode="contain"
+          />
           <Text style={[styles.title, { color: theme.colors.text }]}>Create Account</Text>
         </View>
 
@@ -131,7 +118,7 @@ export default function SignUp() {
 
           <TextInput
             style={[styles.input, { backgroundColor: theme.colors.inputBackground, borderColor: theme.colors.inputBorder, color: theme.colors.text }]}
-            placeholder="Enter your full name (e.g., John Smith)"
+            placeholder="Full Name *"
             placeholderTextColor={theme.colors.placeholderText}
             value={fullName}
             onChangeText={setFullName}
@@ -139,7 +126,7 @@ export default function SignUp() {
           />
           <TextInput
             style={[styles.input, { backgroundColor: theme.colors.inputBackground, borderColor: theme.colors.inputBorder, color: theme.colors.text }]}
-            placeholder="Enter your email address (e.g., john@example.com)"
+            placeholder="Email *"
             placeholderTextColor={theme.colors.placeholderText}
             value={email}
             onChangeText={setEmail}
@@ -149,7 +136,7 @@ export default function SignUp() {
           />
           <TextInput
             style={[styles.input, { backgroundColor: theme.colors.inputBackground, borderColor: theme.colors.inputBorder, color: theme.colors.text }]}
-            placeholder="Enter your phone number (optional)"
+            placeholder="Phone"
             placeholderTextColor={theme.colors.placeholderText}
             value={phone}
             onChangeText={setPhone}
@@ -158,7 +145,7 @@ export default function SignUp() {
           />
           <TextInput
             style={[styles.input, { backgroundColor: theme.colors.inputBackground, borderColor: theme.colors.inputBorder, color: theme.colors.text }]}
-            placeholder="Create a strong password (min. 6 characters)"
+            placeholder="Password *"
             placeholderTextColor={theme.colors.placeholderText}
             value={password}
             onChangeText={setPassword}
@@ -169,7 +156,7 @@ export default function SignUp() {
           <TouchableOpacity
             style={[styles.button, { backgroundColor: theme.colors.primary }, loading && styles.buttonDisabled]}
             onPress={handleSignUp}
-            disabled={loading || googleLoading}
+            disabled={loading}
           >
             {loading ? (
               <ActivityIndicator color={theme.colors.card} />
@@ -178,30 +165,9 @@ export default function SignUp() {
             )}
           </TouchableOpacity>
 
-          <View style={styles.dividerContainer}>
-            <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
-            <Text style={[styles.dividerText, { color: theme.colors.textSecondary }]}>OR</Text>
-            <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
-          </View>
-
-          <TouchableOpacity
-            style={[styles.googleButton, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}
-            onPress={handleGoogleSignUp}
-            disabled={loading || googleLoading}
-          >
-            {googleLoading ? (
-              <ActivityIndicator color={theme.colors.text} />
-            ) : (
-              <>
-                <Text style={styles.googleIcon}>G</Text>
-                <Text style={[styles.googleButtonText, { color: theme.colors.text }]}>Continue with Google</Text>
-              </>
-            )}
-          </TouchableOpacity>
-
           <TouchableOpacity
             onPress={() => router.back()}
-            disabled={loading || googleLoading}
+            disabled={loading}
           >
             <Text style={[styles.linkText, { color: theme.colors.primary }]}>
               Already have an account? Sign In
@@ -227,9 +193,9 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   logo: {
-    fontSize: 36,
-    fontWeight: '700',
-    marginBottom: 8,
+    width: 280,
+    height: 70,
+    marginBottom: 12,
   },
   title: {
     fontSize: 28,
@@ -288,36 +254,5 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginBottom: 16,
     textAlign: 'center',
-  },
-  dividerContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 8,
-  },
-  divider: {
-    flex: 1,
-    height: 1,
-  },
-  dividerText: {
-    marginHorizontal: 16,
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  googleButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-    borderRadius: 12,
-    borderWidth: 1,
-    gap: 12,
-  },
-  googleIcon: {
-    fontSize: 20,
-    fontWeight: '700',
-  },
-  googleButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
   },
 });

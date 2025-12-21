@@ -9,6 +9,7 @@ import {
   Platform,
   ScrollView,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
@@ -19,8 +20,7 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
-  const { signIn, signInWithGoogle, session, userProfile } = useAuth();
+  const { signIn, session, userProfile } = useAuth();
   const { theme } = useTheme();
   const router = useRouter();
 
@@ -53,23 +53,6 @@ export default function Login() {
     }
   };
 
-  const handleGoogleSignIn = async () => {
-    if (Platform.OS === 'web') {
-      setError('Google Sign-In is not available in preview environments. Please use email/password sign-in instead.');
-      return;
-    }
-
-    setError('');
-    setGoogleLoading(true);
-    try {
-      await signInWithGoogle('customer');
-    } catch (err: any) {
-      console.error('Google sign-in failed:', err);
-      setError(err.message || 'Failed to sign in with Google');
-      setGoogleLoading(false);
-    }
-  };
-
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -80,7 +63,11 @@ export default function Login() {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.logoContainer}>
-          <Text style={[styles.logo, { color: theme.colors.primary }]}>WeldConnect</Text>
+          <Image
+            source={require('@/assets/images/image.png')}
+            style={styles.logo}
+            resizeMode="contain"
+          />
           <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>Mobile Welding Network</Text>
         </View>
 
@@ -121,35 +108,14 @@ export default function Login() {
 
           <TouchableOpacity
             onPress={() => router.push('/auth/forgot-password')}
-            disabled={loading || googleLoading}
+            disabled={loading}
           >
             <Text style={[styles.linkText, { color: theme.colors.primary }]}>Forgot Password?</Text>
           </TouchableOpacity>
 
-          <View style={styles.dividerContainer}>
-            <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
-            <Text style={[styles.dividerText, { color: theme.colors.textSecondary }]}>OR</Text>
-            <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
-          </View>
-
-          <TouchableOpacity
-            style={[styles.googleButton, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}
-            onPress={handleGoogleSignIn}
-            disabled={loading || googleLoading}
-          >
-            {googleLoading ? (
-              <ActivityIndicator color={theme.colors.text} />
-            ) : (
-              <>
-                <Text style={styles.googleIcon}>G</Text>
-                <Text style={[styles.googleButtonText, { color: theme.colors.text }]}>Continue with Google</Text>
-              </>
-            )}
-          </TouchableOpacity>
-
           <TouchableOpacity
             onPress={() => router.push('/auth/signup')}
-            disabled={loading || googleLoading}
+            disabled={loading}
           >
             <Text style={[styles.linkText, { color: theme.colors.primary }]}>
               Don't have an account? Sign Up
@@ -176,9 +142,9 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   logo: {
-    fontSize: 40,
-    fontWeight: '700',
-    marginBottom: 8,
+    width: 320,
+    height: 80,
+    marginBottom: 16,
   },
   subtitle: {
     fontSize: 16,
@@ -217,36 +183,5 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginBottom: 16,
     textAlign: 'center',
-  },
-  dividerContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 8,
-  },
-  divider: {
-    flex: 1,
-    height: 1,
-  },
-  dividerText: {
-    marginHorizontal: 16,
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  googleButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-    borderRadius: 12,
-    borderWidth: 1,
-    gap: 12,
-  },
-  googleIcon: {
-    fontSize: 20,
-    fontWeight: '700',
-  },
-  googleButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
   },
 });
