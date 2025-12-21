@@ -11,41 +11,18 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { supabase } from '@/lib/supabase';
 import { useTheme } from '@/contexts/ThemeContext';
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('');
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [error] = useState('Password reset is not available in demo mode');
+  const [success] = useState(false);
+  const [loading] = useState(false);
   const { theme } = useTheme();
   const router = useRouter();
 
   const handleResetPassword = async () => {
-    setError('');
-    setSuccess(false);
-
-    if (!email) {
-      setError('Please enter your email address');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: 'exp://localhost:8081/--/auth/reset-password',
-      });
-
-      if (error) throw error;
-
-      setSuccess(true);
-    } catch (err: any) {
-      console.error('Password reset error:', err);
-      setError(err.message || 'Failed to send reset email');
-    } finally {
-      setLoading(false);
-    }
+    // Not implemented in demo mode
   };
 
   return (

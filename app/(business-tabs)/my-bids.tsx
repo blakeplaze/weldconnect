@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -9,144 +9,47 @@ import {
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/lib/supabase';
 import { DollarSign, Clock, CheckCircle, XCircle } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
-
-interface Bid {
-  id: string;
-  amount: number;
-  notes: string | null;
-  created_at: string;
-  job: {
-    id: string;
-    title: string;
-    city: string;
-    state: string;
-    status: string;
-    winning_bid_id: string | null;
-  };
-}
+import { useApplications } from '@/contexts/DatabaseContext';
 
 export default function MyBids() {
-  const { session, loading: authLoading } = useAuth();
+  const { userProfile } = useAuth();
   const { theme } = useTheme();
-  const [bids, setBids] = useState<Bid[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { applications, loading, refresh } = useApplications({ business_id: userProfile?.id });
   const [refreshing, setRefreshing] = useState(false);
-  const [businessId, setBusinessId] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (authLoading) {
-      return;
-    }
-
-    if (session) {
-      console.log('My Bids: Loading bids for user', session.user.id);
-      loadBusinessAndBids(session.user.id);
-    } else {
-      console.log('My Bids: No session, stopping load');
-      setLoading(false);
-    }
-  }, [authLoading, session]);
 
   useFocusEffect(
     useCallback(() => {
-      if (session) {
-        loadBusinessAndBids(session.user.id);
-      }
-    }, [session])
+      refresh();
+    }, [])
   );
 
-  const loadBusinessAndBids = async (userId: string) => {
-    try {
-      console.log('My Bids: Querying businesses for owner_id:', userId);
-      const { data: businessData, error: businessError } = await supabase
-        .from('businesses')
-        .select('id')
-        .eq('owner_id', userId)
-        .maybeSingle();
-
-      console.log('My Bids: Business query result:', { businessData, businessError });
-
-      if (businessError) {
-        console.error('My Bids: Business query error:', businessError);
-        setLoading(false);
-        return;
-      }
-      if (!businessData) {
-        console.log('My Bids: No business found for user');
-        setLoading(false);
-        return;
-      }
-
-      console.log('My Bids: Found business, loading bids');
-      setBusinessId(businessData.id);
-      await loadBids(businessData.id);
-    } catch (err) {
-      console.error('Error loading business:', err);
-      setLoading(false);
-    }
-  };
-
-  const loadBids = async (busId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('bids')
-        .select(
-          `
-          id,
-          amount,
-          notes,
-          created_at,
-          job:jobs!bids_job_id_fkey(id, title, city, state, status, winning_bid_id)
-        `
-        )
-        .eq('business_id', busId)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-
-      const normalizedBids = (data || []).map((bid: any) => ({
-        ...bid,
-        job: Array.isArray(bid.job) ? bid.job[0] : bid.job,
-      }));
-
-      setBids(normalizedBids);
-    } catch (err) {
-      console.error('Error loading bids:', err);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
-
-  const onRefresh = () => {
+  const onRefresh = async () => {
     setRefreshing(true);
-    if (businessId) {
-      loadBids(businessId);
-    }
+    await refresh();
+    setRefreshing(false);
   };
 
-  const getBidStatus = (bid: Bid) => {
-    if (bid.job.winning_bid_id === bid.id) {
+  const getBidStatus = (status: string) => {
+    if (status === 'accepted') {
       return { text: 'WON', color: theme.colors.success, icon: CheckCircle };
-    } else if (bid.job.status === 'awarded') {
+    } else if (status === 'rejected') {
       return { text: 'LOST', color: theme.colors.error, icon: XCircle };
     } else {
       return { text: 'PENDING', color: theme.colors.warning, icon: Clock };
     }
   };
 
-  const renderBid = ({ item }: { item: Bid }) => {
-    const status = getBidStatus(item);
+  const renderBid = ({ item }: { item: any }) => {
+    const status = getBidStatus(item.status);
     const StatusIcon = status.icon;
 
     return (
       <View style={[styles.bidCard, { backgroundColor: theme.colors.card }]}>
         <View style={styles.bidHeader}>
           <Text style={[styles.jobTitle, { color: theme.colors.text }]} numberOfLines={1}>
-            {item.job.title}
+            Job Application
           </Text>
           <View style={[styles.statusBadge, { backgroundColor: status.color }]}>
             <StatusIcon size={14} color={theme.colors.card} />
@@ -154,18 +57,14 @@ export default function MyBids() {
           </View>
         </View>
 
-        <Text style={[styles.jobLocation, { color: theme.colors.textSecondary }]}>
-          {item.job.city}, {item.job.state}
-        </Text>
-
         <View style={styles.amountContainer}>
           <DollarSign size={20} color={theme.colors.primary} />
-          <Text style={[styles.amountText, { color: theme.colors.primary }]}>${item.amount.toFixed(2)}</Text>
+          <Text style={[styles.amountText, { color: theme.colors.primary }]}>${item.bid_amount.toFixed(2)}</Text>
         </View>
 
-        {item.notes && (
+        {item.message && (
           <Text style={[styles.notes, { color: theme.colors.textSecondary }]} numberOfLines={2}>
-            {item.notes}
+            {item.message}
           </Text>
         )}
 
@@ -187,7 +86,7 @@ export default function MyBids() {
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <FlatList
-        data={bids}
+        data={applications}
         renderItem={renderBid}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
@@ -247,9 +146,6 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: 12,
     fontWeight: '600',
-  },
-  jobLocation: {
-    fontSize: 14,
   },
   amountContainer: {
     flexDirection: 'row',

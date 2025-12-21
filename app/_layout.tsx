@@ -5,6 +5,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { ThemeProvider, useTheme } from '@/contexts/ThemeContext';
+import { DatabaseProvider } from '@/contexts/DatabaseContext';
 import { useNotifications } from '@/hooks/useNotifications';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
@@ -49,11 +50,13 @@ export default function RootLayout() {
 
   return (
     <ErrorBoundary>
-      <AuthProvider>
-        <ThemeProvider>
-          <RootLayoutContent />
-        </ThemeProvider>
-      </AuthProvider>
+      <DatabaseProvider>
+        <AuthProvider>
+          <ThemeProvider>
+            <RootLayoutContent />
+          </ThemeProvider>
+        </AuthProvider>
+      </DatabaseProvider>
     </ErrorBoundary>
   );
 }

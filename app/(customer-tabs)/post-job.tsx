@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   View,
   Text,
@@ -9,157 +9,54 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
-  Image,
+  Alert,
 } from 'react-native';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/lib/supabase';
+import { localDb } from '@/lib/localDb';
 import { useRouter } from 'expo-router';
 import JobPostSuccessModal from '@/components/JobPostSuccessModal';
-import { geocodeCity } from '@/lib/geocoding';
-import { pickImage, uploadJobImage } from '@/lib/uploadImage';
-import { Camera, X } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 
-const COOLDOWN_MINUTES = 2;
-const COOLDOWN_MS = COOLDOWN_MINUTES * 60 * 1000;
-
 export default function PostJob() {
-  const { session, userProfile, refreshProfile } = useAuth();
+  const { userProfile } = useAuth();
   const router = useRouter();
   const { theme } = useTheme();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [city, setCity] = useState('');
-  const [state, setState] = useState('');
-  const [address, setAddress] = useState('');
-  const [contactName, setContactName] = useState('');
-  const [contactPhone, setContactPhone] = useState('');
+  const [location, setLocation] = useState('');
+  const [budgetMin, setBudgetMin] = useState('');
+  const [budgetMax, setBudgetMax] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [cooldownRemaining, setCooldownRemaining] = useState(0);
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const [uploadingImage, setUploadingImage] = useState(false);
-
-  useEffect(() => {
-    checkCooldown();
-    const interval = setInterval(checkCooldown, 1000);
-    return () => clearInterval(interval);
-  }, [userProfile?.last_job_posted_at]);
-
-  const checkCooldown = () => {
-    if (!userProfile?.last_job_posted_at) {
-      setCooldownRemaining(0);
-      return;
-    }
-
-    const lastPostedAt = new Date(userProfile.last_job_posted_at).getTime();
-    const now = Date.now();
-    const timeSincePost = now - lastPostedAt;
-    const remaining = COOLDOWN_MS - timeSincePost;
-
-    if (remaining > 0) {
-      setCooldownRemaining(Math.ceil(remaining / 1000));
-    } else {
-      setCooldownRemaining(0);
-    }
-  };
-
-  const formatCooldownTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  const handlePickImage = async () => {
-    try {
-      setUploadingImage(true);
-      const image = await pickImage();
-      if (image) {
-        setSelectedImage(image.uri);
-      }
-    } catch (error: any) {
-      setError(error.message || 'Failed to pick image');
-    } finally {
-      setUploadingImage(false);
-    }
-  };
-
-  const handleRemoveImage = () => {
-    setSelectedImage(null);
-  };
 
   const handleSubmit = async () => {
     setError('');
 
-    if (cooldownRemaining > 0) {
-      setError(
-        `Please wait ${formatCooldownTime(cooldownRemaining)} before posting another job`
-      );
-      return;
-    }
-
-    if (!title || !description || !city || !state) {
+    if (!title || !description || !location) {
       setError('Please fill in all required fields');
       return;
     }
 
+    if (!userProfile) return;
+
     setLoading(true);
     try {
-      console.log('Starting job post...');
-      const coords = await geocodeCity(city.trim().toLowerCase(), state.trim().toUpperCase());
-      console.log('Geocoding complete:', coords);
-
-      let jobImageUrl: string | null = null;
-      if (selectedImage && session?.user.id) {
-        console.log('Uploading image...');
-        try {
-          jobImageUrl = await uploadJobImage(session.user.id, selectedImage);
-          console.log('Image uploaded:', jobImageUrl);
-        } catch (imageError: any) {
-          console.error('Image upload failed:', imageError);
-          setError(`Failed to upload image: ${imageError.message}`);
-          setLoading(false);
-          return;
-        }
-      }
-
-      console.log('Inserting job...');
-      const { error: insertError } = await supabase.from('jobs').insert({
-        customer_id: session?.user.id,
+      await localDb.createJob({
+        customer_id: userProfile.id,
         title,
         description,
-        city: city.trim().toLowerCase(),
-        state: state.trim().toUpperCase(),
-        address,
-        contact_name: contactName,
-        contact_phone: contactPhone,
-        latitude: coords?.latitude || null,
-        longitude: coords?.longitude || null,
-        job_image_url: jobImageUrl,
+        location,
+        budget_min: parseFloat(budgetMin) || 0,
+        budget_max: parseFloat(budgetMax) || 0,
         status: 'open',
       });
 
-      if (insertError) throw insertError;
-      console.log('Job inserted successfully');
-
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({ last_job_posted_at: new Date().toISOString() })
-        .eq('id', session?.user.id);
-
-      if (updateError) throw updateError;
-
-      await refreshProfile();
-
       setTitle('');
       setDescription('');
-      setCity('');
-      setState('');
-      setAddress('');
-      setContactName('');
-      setContactPhone('');
-      setSelectedImage(null);
+      setLocation('');
+      setBudgetMin('');
+      setBudgetMax('');
       setShowSuccessModal(true);
     } catch (err: any) {
       console.error('Error posting job:', err);
@@ -195,14 +92,6 @@ export default function PostJob() {
           </Text>
         </View>
 
-        {cooldownRemaining > 0 && (
-          <View style={[styles.cooldownBanner, { backgroundColor: theme.colors.warning + '33', borderLeftColor: theme.colors.warning }]}>
-            <Text style={styles.cooldownText}>
-              Next job post available in: {formatCooldownTime(cooldownRemaining)}
-            </Text>
-          </View>
-        )}
-
         {error ? <Text style={[styles.error, { backgroundColor: theme.colors.error + '20', color: theme.colors.error }]}>{error}</Text> : null}
 
         <View style={styles.form}>
@@ -210,7 +99,7 @@ export default function PostJob() {
             <Text style={[styles.label, { color: theme.colors.text }]}>Job Title *</Text>
             <TextInput
               style={[styles.input, { backgroundColor: theme.colors.input || theme.colors.card, borderColor: theme.colors.border, color: theme.colors.text }]}
-              placeholder="e.g., Fence Gate Repair"
+              placeholder="e.g., Steel Railing Installation"
               placeholderTextColor={theme.colors.textSecondary}
               value={title}
               onChangeText={setTitle}
@@ -222,7 +111,7 @@ export default function PostJob() {
             <Text style={[styles.label, { color: theme.colors.text }]}>Description *</Text>
             <TextInput
               style={[styles.input, styles.textArea, { backgroundColor: theme.colors.input || theme.colors.card, borderColor: theme.colors.border, color: theme.colors.text }]}
-              placeholder="Describe the welding work needed, materials, timeline, etc."
+              placeholder="Describe the welding work needed..."
               placeholderTextColor={theme.colors.textSecondary}
               value={description}
               onChangeText={setDescription}
@@ -234,114 +123,58 @@ export default function PostJob() {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: theme.colors.text }]}>Job Photo (Optional)</Text>
-            {selectedImage ? (
-              <View style={styles.imagePreviewContainer}>
-                <Image source={{ uri: selectedImage }} style={styles.imagePreview} />
-                <TouchableOpacity
-                  style={[styles.removeImageButton, { backgroundColor: theme.colors.error }]}
-                  onPress={handleRemoveImage}
-                  disabled={loading}
-                >
-                  <X size={20} color={theme.colors.card} />
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <TouchableOpacity
-                style={[styles.imagePickerButton, { backgroundColor: theme.colors.card, borderColor: theme.colors.primary }]}
-                onPress={handlePickImage}
-                disabled={loading || uploadingImage}
-              >
-                {uploadingImage ? (
-                  <ActivityIndicator size="small" color={theme.colors.primary} />
-                ) : (
-                  <>
-                    <Camera size={32} color={theme.colors.primary} />
-                    <Text style={[styles.imagePickerText, { color: theme.colors.primary }]}>Add Photo</Text>
-                  </>
-                )}
-              </TouchableOpacity>
-            )}
+            <Text style={[styles.label, { color: theme.colors.text }]}>Location *</Text>
+            <TextInput
+              style={[styles.input, { backgroundColor: theme.colors.input || theme.colors.card, borderColor: theme.colors.border, color: theme.colors.text }]}
+              placeholder="e.g., Austin, TX"
+              placeholderTextColor={theme.colors.textSecondary}
+              value={location}
+              onChangeText={setLocation}
+              editable={!loading}
+            />
           </View>
 
           <View style={styles.row}>
             <View style={[styles.inputGroup, styles.flex1]}>
-              <Text style={[styles.label, { color: theme.colors.text }]}>City *</Text>
+              <Text style={[styles.label, { color: theme.colors.text }]}>Min Budget ($)</Text>
               <TextInput
                 style={[styles.input, { backgroundColor: theme.colors.input || theme.colors.card, borderColor: theme.colors.border, color: theme.colors.text }]}
-                placeholder="City"
+                placeholder="500"
                 placeholderTextColor={theme.colors.textSecondary}
-                value={city}
-                onChangeText={setCity}
+                value={budgetMin}
+                onChangeText={setBudgetMin}
+                keyboardType="numeric"
                 editable={!loading}
               />
             </View>
             <View style={[styles.inputGroup, styles.flex1]}>
-              <Text style={[styles.label, { color: theme.colors.text }]}>State *</Text>
+              <Text style={[styles.label, { color: theme.colors.text }]}>Max Budget ($)</Text>
               <TextInput
                 style={[styles.input, { backgroundColor: theme.colors.input || theme.colors.card, borderColor: theme.colors.border, color: theme.colors.text }]}
-                placeholder="State"
+                placeholder="1000"
                 placeholderTextColor={theme.colors.textSecondary}
-                value={state}
-                onChangeText={setState}
+                value={budgetMax}
+                onChangeText={setBudgetMax}
+                keyboardType="numeric"
                 editable={!loading}
               />
             </View>
-          </View>
-
-          <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: theme.colors.text }]}>Address</Text>
-            <TextInput
-              style={[styles.input, { backgroundColor: theme.colors.input || theme.colors.card, borderColor: theme.colors.border, color: theme.colors.text }]}
-              placeholder="Full address (shared with winner only)"
-              placeholderTextColor={theme.colors.textSecondary}
-              value={address}
-              onChangeText={setAddress}
-              editable={!loading}
-            />
-          </View>
-
-          <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: theme.colors.text }]}>Contact Name</Text>
-            <TextInput
-              style={[styles.input, { backgroundColor: theme.colors.input || theme.colors.card, borderColor: theme.colors.border, color: theme.colors.text }]}
-              placeholder="Contact name (shared with winner only)"
-              placeholderTextColor={theme.colors.textSecondary}
-              value={contactName}
-              onChangeText={setContactName}
-              editable={!loading}
-            />
-          </View>
-
-          <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: theme.colors.text }]}>Contact Phone</Text>
-            <TextInput
-              style={[styles.input, { backgroundColor: theme.colors.input || theme.colors.card, borderColor: theme.colors.border, color: theme.colors.text }]}
-              placeholder="Contact phone (shared with winner only)"
-              placeholderTextColor={theme.colors.textSecondary}
-              value={contactPhone}
-              onChangeText={setContactPhone}
-              keyboardType="phone-pad"
-              editable={!loading}
-            />
           </View>
 
           <TouchableOpacity
             style={[
               styles.submitButton,
               { backgroundColor: theme.colors.primary },
-              (loading || cooldownRemaining > 0) && styles.buttonDisabled,
+              loading && styles.buttonDisabled,
             ]}
             onPress={handleSubmit}
-            disabled={loading || cooldownRemaining > 0}
+            disabled={loading}
           >
             {loading ? (
               <ActivityIndicator color={theme.colors.card} />
             ) : (
               <Text style={[styles.submitButtonText, { color: theme.colors.card }]}>
-                {cooldownRemaining > 0
-                  ? `Wait ${formatCooldownTime(cooldownRemaining)}`
-                  : 'Post Job'}
+                Post Job
               </Text>
             )}
           </TouchableOpacity>
@@ -422,51 +255,5 @@ const styles = StyleSheet.create({
     margin: 16,
     marginBottom: 0,
     textAlign: 'center',
-  },
-  cooldownBanner: {
-    borderLeftWidth: 4,
-    padding: 16,
-    margin: 16,
-    marginBottom: 0,
-    borderRadius: 8,
-  },
-  cooldownText: {
-    color: '#856404',
-    fontSize: 14,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  imagePickerButton: {
-    borderWidth: 2,
-    borderStyle: 'dashed',
-    borderRadius: 12,
-    padding: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  imagePickerText: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  imagePreviewContainer: {
-    position: 'relative',
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  imagePreview: {
-    width: '100%',
-    height: 200,
-    borderRadius: 12,
-  },
-  removeImageButton: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
 });

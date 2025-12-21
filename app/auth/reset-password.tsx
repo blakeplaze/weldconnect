@@ -11,55 +11,19 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { supabase } from '@/lib/supabase';
 import { useTheme } from '@/contexts/ThemeContext';
 
 export default function ResetPassword() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [error] = useState('Password reset is not available in demo mode');
+  const [success] = useState(false);
+  const [loading] = useState(false);
   const { theme } = useTheme();
   const router = useRouter();
 
   const handleUpdatePassword = async () => {
-    setError('');
-    setSuccess(false);
-
-    if (!password || !confirmPassword) {
-      setError('Please fill in all fields');
-      return;
-    }
-
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters');
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      setError('Passwords do not match');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const { error } = await supabase.auth.updateUser({
-        password: password,
-      });
-
-      if (error) throw error;
-
-      setSuccess(true);
-      setTimeout(() => {
-        router.replace('/auth/login');
-      }, 2000);
-    } catch (err: any) {
-      console.error('Password update error:', err);
-      setError(err.message || 'Failed to update password');
-    } finally {
-      setLoading(false);
-    }
+    // Not implemented in demo mode
   };
 
   return (

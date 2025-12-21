@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import {
   View,
   Text,
@@ -9,128 +9,39 @@ import {
   RefreshControl,
 } from 'react-native';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/lib/supabase';
 import { useRouter, useFocusEffect } from 'expo-router';
-import { Clock, CheckCircle, DollarSign, Star } from 'lucide-react-native';
-import ReviewModal from '@/components/ReviewModal';
+import { Clock, CheckCircle, DollarSign } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
-
-interface Job {
-  id: string;
-  title: string;
-  city: string;
-  state: string;
-  status: string;
-  created_at: string;
-  bid_count?: number;
-  winning_bid_id?: string;
-  business_id?: string;
-  business_name?: string;
-  has_review?: boolean;
-  review_rating?: number;
-}
+import { useJobs } from '@/contexts/DatabaseContext';
+import { useCallback } from 'react';
 
 export default function MyJobs() {
-  const { session } = useAuth();
+  const { userProfile } = useAuth();
   const router = useRouter();
   const { theme } = useTheme();
-  const [jobs, setJobs] = useState<Job[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { jobs, loading, refresh } = useJobs({ customer_id: userProfile?.id });
   const [refreshing, setRefreshing] = useState(false);
-  const [reviewModalVisible, setReviewModalVisible] = useState(false);
-  const [selectedJob, setSelectedJob] = useState<Job | null>(null);
-
-  const loadJobs = useCallback(async () => {
-    if (!session?.user.id) {
-      setLoading(false);
-      return;
-    }
-    try {
-      const { data: jobsData, error } = await supabase
-        .from('jobs')
-        .select('id, title, city, state, status, created_at, winning_bid_id')
-        .eq('customer_id', session?.user.id)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-
-      const jobsWithDetails = await Promise.all(
-        (jobsData || []).map(async (job) => {
-          const { count } = await supabase
-            .from('bids')
-            .select('*', { count: 'exact', head: true })
-            .eq('job_id', job.id);
-
-          let businessId = null;
-          let businessName = null;
-          let hasReview = false;
-          let reviewRating = null;
-
-          if (job.winning_bid_id) {
-            const { data: bidData } = await supabase
-              .from('bids')
-              .select('businesses!inner(owner_id, business_name)')
-              .eq('id', job.winning_bid_id)
-              .maybeSingle();
-
-            if (bidData) {
-              businessId = (bidData.businesses as any)?.owner_id;
-              businessName = (bidData.businesses as any)?.business_name;
-
-              const { data: reviewData } = await supabase
-                .from('reviews')
-                .select('rating')
-                .eq('job_id', job.id)
-                .maybeSingle();
-
-              if (reviewData) {
-                hasReview = true;
-                reviewRating = reviewData.rating;
-              }
-            }
-          }
-
-          return {
-            ...job,
-            bid_count: count || 0,
-            business_id: businessId,
-            business_name: businessName,
-            has_review: hasReview,
-            review_rating: reviewRating,
-          };
-        })
-      );
-
-      setJobs(jobsWithDetails);
-    } catch (err) {
-      console.error('Error loading jobs:', err);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, [session]);
 
   useFocusEffect(
     useCallback(() => {
-      loadJobs();
-    }, [loadJobs])
+      refresh();
+    }, [])
   );
 
-  const onRefresh = () => {
+  const onRefresh = async () => {
     setRefreshing(true);
-    loadJobs();
+    await refresh();
+    setRefreshing(false);
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'open':
         return theme.colors.warning;
-      case 'bidding':
+      case 'in_progress':
         return theme.colors.primary;
-      case 'awarded':
-        return theme.colors.success;
       case 'completed':
-        return theme.colors.textSecondary;
+        return theme.colors.success;
       default:
         return theme.colors.textSecondary;
     }
@@ -139,9 +50,8 @@ export default function MyJobs() {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'open':
-      case 'bidding':
+      case 'in_progress':
         return <Clock size={16} color={getStatusColor(status)} />;
-      case 'awarded':
       case 'completed':
         return <CheckCircle size={16} color={getStatusColor(status)} />;
       default:
@@ -149,12 +59,7 @@ export default function MyJobs() {
     }
   };
 
-  const handleLeaveReview = (job: Job) => {
-    setSelectedJob(job);
-    setReviewModalVisible(true);
-  };
-
-  const renderJob = ({ item }: { item: Job }) => (
+  const renderJob = ({ item }: { item: any }) => (
     <TouchableOpacity
       style={[styles.jobCard, { backgroundColor: theme.colors.card }]}
       onPress={() => router.push(`/job-details/${item.id}` as any)}
@@ -169,50 +74,19 @@ export default function MyJobs() {
         </View>
       </View>
       <Text style={[styles.jobLocation, { color: theme.colors.textSecondary }]}>
-        {item.city}, {item.state}
+        {item.location}
       </Text>
       <View style={styles.jobFooter}>
         <View style={styles.bidInfo}>
           <DollarSign size={16} color={theme.colors.textSecondary} />
-          <Text style={[styles.bidCount, { color: theme.colors.textSecondary }]}>
-            {item.bid_count} {item.bid_count === 1 ? 'bid' : 'bids'}
+          <Text style={[styles.budgetText, { color: theme.colors.textSecondary }]}>
+            ${item.budget_min} - ${item.budget_max}
           </Text>
         </View>
         <Text style={[styles.dateText, { color: theme.colors.textSecondary }]}>
           {new Date(item.created_at).toLocaleDateString()}
         </Text>
       </View>
-
-      {item.status === 'completed' && item.business_id && (
-        <View style={[styles.reviewSection, { borderTopColor: theme.colors.border }]}>
-          {item.has_review ? (
-            <View style={styles.ratingDisplay}>
-              <Text style={[styles.ratedText, { color: theme.colors.textSecondary }]}>Your rating:</Text>
-              <View style={styles.starsRow}>
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <Star
-                    key={star}
-                    size={16}
-                    color={star <= (item.review_rating || 0) ? '#FFD700' : '#CCC'}
-                    fill={star <= (item.review_rating || 0) ? '#FFD700' : 'none'}
-                  />
-                ))}
-              </View>
-            </View>
-          ) : (
-            <TouchableOpacity
-              style={[styles.reviewButton, { backgroundColor: theme.colors.primary + '20', borderColor: theme.colors.primary }]}
-              onPress={(e) => {
-                e.stopPropagation();
-                handleLeaveReview(item);
-              }}
-            >
-              <Star size={16} color={theme.colors.primary} />
-              <Text style={[styles.reviewButtonText, { color: theme.colors.primary }]}>Leave Review</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      )}
     </TouchableOpacity>
   );
 
@@ -243,23 +117,6 @@ export default function MyJobs() {
           </View>
         }
       />
-
-      {selectedJob && (
-        <ReviewModal
-          visible={reviewModalVisible}
-          jobId={selectedJob.id}
-          businessId={selectedJob.business_id || ''}
-          businessName={selectedJob.business_name || ''}
-          customerId={session?.user.id || ''}
-          onClose={() => {
-            setReviewModalVisible(false);
-            setSelectedJob(null);
-          }}
-          onSuccess={() => {
-            loadJobs();
-          }}
-        />
-      )}
     </View>
   );
 }
@@ -319,7 +176,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 4,
   },
-  bidCount: {
+  budgetText: {
     fontSize: 14,
     fontWeight: '500',
   },
@@ -337,36 +194,5 @@ const styles = StyleSheet.create({
   },
   emptySubtext: {
     fontSize: 14,
-  },
-  reviewSection: {
-    marginTop: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-  },
-  reviewButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    borderWidth: 1,
-  },
-  reviewButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  ratingDisplay: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  ratedText: {
-    fontSize: 14,
-  },
-  starsRow: {
-    flexDirection: 'row',
-    gap: 2,
   },
 });
