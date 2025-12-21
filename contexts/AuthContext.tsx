@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
 import * as SplashScreen from 'expo-splash-screen';
+import * as SecureStore from 'expo-secure-store';
+import { router } from 'expo-router';
 import { Platform } from 'react-native';
 
 interface UserProfile {
@@ -30,129 +31,95 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    console.log('AuthContext: Initializing auth...');
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log('AuthContext: Initial session:', session ? 'Found' : 'None');
-      setSession(session);
-      if (session?.user) {
-        loadUserProfile(session.user.id);
-      } else {
+    async function initAuth() {
+      try {
+        if (Platform.OS === 'web') {
+          const savedUser = localStorage.getItem('weldconnect_user');
+          if (savedUser) {
+            const profile = JSON.parse(savedUser);
+            setSession({ user: { id: profile.id } });
+            setUserProfile(profile);
+          }
+        } else {
+          const savedUser = await SecureStore.getItemAsync('weldconnect_user');
+          if (savedUser) {
+            const profile = JSON.parse(savedUser);
+            setSession({ user: { id: profile.id } });
+            setUserProfile(profile);
+          }
+        }
+      } catch (e) {
+        console.error('Failed to load mock session', e);
+      } finally {
         setLoading(false);
-        SplashScreen.hideAsync().catch(() => {});
+        await SplashScreen.hideAsync().catch(() => {});
       }
-    });
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      console.log('AuthContext: Auth state changed:', _event, session ? 'Session exists' : 'No session');
-      setSession(session);
-      if (session?.user) {
-        loadUserProfile(session.user.id);
-      } else {
-        setUserProfile(null);
-        setLoading(false);
-      }
-    });
-
-    return () => subscription.unsubscribe();
+    }
+    initAuth();
   }, []);
 
-  const loadUserProfile = async (userId: string) => {
-    try {
-      console.log('AuthContext: Loading profile for user:', userId);
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .maybeSingle();
-
-      if (error) {
-        console.error('AuthContext: Error loading profile:', error);
-        throw error;
-      }
-
-      console.log('AuthContext: Profile loaded:', data);
-      setUserProfile(data);
-    } catch (error) {
-      console.error('AuthContext: Failed to load user profile:', error);
-    } finally {
-      setLoading(false);
-      await SplashScreen.hideAsync().catch(() => {});
-    }
-  };
-
   const signIn = async (email: string, password: string) => {
-    console.log('AuthContext: Attempting sign in for:', email);
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    const mockProfile: UserProfile = {
+      id: 'mock-123',
+      full_name: 'Test Welder',
+      phone: '555-0199',
+      user_type: 'business',
+      last_job_posted_at: null,
+      profile_picture_url: null,
+    };
 
-    if (error) {
-      console.error('AuthContext: Sign in error:', error);
-      throw error;
+    setSession({ user: { id: mockProfile.id } });
+    setUserProfile(mockProfile);
+
+    if (Platform.OS === 'web') {
+      localStorage.setItem('weldconnect_user', JSON.stringify(mockProfile));
+    } else {
+      await SecureStore.setItemAsync('weldconnect_user', JSON.stringify(mockProfile));
     }
 
-    console.log('AuthContext: Sign in successful');
+    router.replace('/(business-tabs)');
   };
 
   const signUp = async (email: string, password: string, fullName: string, userType: 'customer' | 'business', phone?: string) => {
-    console.log('AuthContext: Attempting sign up for:', email);
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          full_name: fullName,
-          user_type: userType,
-          phone: phone || null,
-        },
-      },
-    });
+    const mockProfile: UserProfile = {
+      id: Math.random().toString(36).substr(2, 9),
+      full_name: fullName,
+      phone: phone || null,
+      user_type: userType,
+      last_job_posted_at: null,
+      profile_picture_url: null,
+    };
 
-    if (error) {
-      console.error('AuthContext: Sign up error:', error);
-      throw error;
+    setSession({ user: { id: mockProfile.id } });
+    setUserProfile(mockProfile);
+
+    if (Platform.OS === 'web') {
+      localStorage.setItem('weldconnect_user', JSON.stringify(mockProfile));
+    } else {
+      await SecureStore.setItemAsync('weldconnect_user', JSON.stringify(mockProfile));
     }
 
-    if (data.user) {
-      const { error: profileError } = await supabase.from('profiles').insert({
-        id: data.user.id,
-        full_name: fullName,
-        phone: phone || null,
-        user_type: userType,
-      });
-
-      if (profileError) {
-        console.error('AuthContext: Profile creation error:', profileError);
-        throw profileError;
-      }
+    if (userType === 'business') {
+      router.replace('/(business-tabs)');
+    } else {
+      router.replace('/(customer-tabs)');
     }
-
-    console.log('AuthContext: Sign up successful');
   };
 
   const signOut = async () => {
-    console.log('AuthContext: Signing out...');
-    try {
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        console.error('AuthContext: Error signing out:', error);
-        throw error;
-      }
-      console.log('AuthContext: Sign out successful');
-    } catch (error) {
-      console.error('AuthContext: Sign out failed:', error);
-      throw error;
+    setSession(null);
+    setUserProfile(null);
+
+    if (Platform.OS === 'web') {
+      localStorage.removeItem('weldconnect_user');
+    } else {
+      await SecureStore.deleteItemAsync('weldconnect_user');
     }
+
+    router.replace('/auth/login');
   };
 
   const refreshProfile = async () => {
-    if (session?.user) {
-      await loadUserProfile(session.user.id);
-    }
   };
 
   return (
