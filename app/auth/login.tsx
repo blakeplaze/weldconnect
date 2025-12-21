@@ -9,7 +9,6 @@ import {
   Platform,
   ScrollView,
   ActivityIndicator,
-  Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
@@ -63,11 +62,7 @@ export default function Login() {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.logoContainer}>
-          <Image
-            source={require('@/assets/images/image.png')}
-            style={styles.logo}
-            resizeMode="contain"
-          />
+          <Text style={[styles.logo, { color: theme.colors.primary }]}>WeldConnect</Text>
           <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>Mobile Welding Network</Text>
         </View>
 
@@ -142,9 +137,9 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   logo: {
-    width: 320,
-    height: 80,
-    marginBottom: 16,
+    fontSize: 48,
+    fontWeight: 'bold',
+    marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
