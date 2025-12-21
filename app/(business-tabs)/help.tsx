@@ -11,8 +11,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { ChevronDown, ChevronUp, Mail, HelpCircle, Clock, Trash2 } from 'lucide-react-native';
-import { supabase } from '@/lib/supabase';
+import { ChevronDown, ChevronUp, Mail, HelpCircle } from 'lucide-react-native';
 import ContactSuccessModal from '@/components/ContactSuccessModal';
 import DeleteAccountModal from '@/components/DeleteAccountModal';
 import { useAuth } from '@/contexts/AuthContext';
@@ -101,38 +100,7 @@ export default function Help() {
   }, [cooldownRemaining]);
 
   const checkCooldown = async () => {
-    if (!session?.user) {
-      setIsCheckingCooldown(false);
-      return;
-    }
-
-    try {
-      const { data, error } = await supabase
-        .from('contact_form_submissions')
-        .select('submitted_at')
-        .eq('user_id', session.user.id)
-        .order('submitted_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (error) throw error;
-
-      if (data) {
-        const lastSubmission = new Date(data.submitted_at);
-        const now = new Date();
-        const minutesSinceLastSubmission = Math.floor(
-          (now.getTime() - lastSubmission.getTime()) / (1000 * 60)
-        );
-
-        if (minutesSinceLastSubmission < COOLDOWN_MINUTES) {
-          setCooldownRemaining(COOLDOWN_MINUTES - minutesSinceLastSubmission);
-        }
-      }
-    } catch (error) {
-      console.error('Error checking cooldown:', error);
-    } finally {
-      setIsCheckingCooldown(false);
-    }
+    setIsCheckingCooldown(false);
   };
 
   const toggleFAQ = (index: number) => {
@@ -140,104 +108,15 @@ export default function Help() {
   };
 
   const handleSubmit = async () => {
-    console.log('handleSubmit called');
-    setErrorMessage(null);
-
-    if (!session?.user) {
-      console.log('No user found');
-      setErrorMessage('You must be logged in to send a message');
-      return;
-    }
-
-    console.log('User:', session.user.id);
-
-    if (cooldownRemaining !== null && cooldownRemaining > 0) {
-      console.log('Cooldown active:', cooldownRemaining);
-      setErrorMessage(
-        `You can submit another message in ${cooldownRemaining} minute${cooldownRemaining !== 1 ? 's' : ''}.`
-      );
-      return;
-    }
-
-    if (!name.trim() || !email.trim() || !subject.trim() || !message.trim()) {
-      console.log('Empty fields');
-      setErrorMessage('Please fill in all fields');
-      return;
-    }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      console.log('Invalid email');
-      setErrorMessage('Please enter a valid email address');
-      return;
-    }
-
-    console.log('Starting submission');
-    setIsSubmitting(true);
-
-    try {
-      console.log('Inserting into database');
-      const { error: dbError } = await supabase
-        .from('contact_form_submissions')
-        .insert({
-          user_id: session.user.id,
-          name: name.trim(),
-          email: email.trim(),
-          subject: subject.trim(),
-          message: message.trim(),
-        });
-
-      if (dbError) {
-        console.error('Database error:', dbError);
-        throw dbError;
-      }
-
-      console.log('Database insert successful');
-
-      const { error: emailError } = await supabase.functions.invoke('send-contact-email', {
-        body: { name, email, subject, message },
-      });
-
-      if (emailError) {
-        console.error('Error sending email:', emailError);
-      }
-
-      console.log('Showing success modal');
-      setShowSuccessModal(true);
-      setName('');
-      setEmail('');
-      setSubject('');
-      setMessage('');
-      setCooldownRemaining(COOLDOWN_MINUTES);
-    } catch (error) {
-      console.error('Error sending message:', error);
-      setErrorMessage('Failed to send message. Please try again.');
-    } finally {
-      setIsSubmitting(false);
-    }
+    setErrorMessage('Contact form is not available in demo mode');
   };
 
   const isFormDisabled = cooldownRemaining !== null && cooldownRemaining > 0;
 
   const handleDeleteAccount = async () => {
-    if (!session?.user) return;
-
-    setIsDeleting(true);
-
-    try {
-      const { error } = await supabase.functions.invoke('delete-account', {
-        method: 'POST',
-      });
-
-      if (error) throw error;
-
-      setShowDeleteModal(false);
-    } catch (error) {
-      console.error('Error deleting account:', error);
-      setErrorMessage('Failed to delete account. Please try again or contact support.');
-      setShowDeleteModal(false);
-      setIsDeleting(false);
-    }
+    setErrorMessage('Delete account is not available in demo mode');
+    setShowDeleteModal(false);
+    setIsDeleting(false);
   };
 
   return (

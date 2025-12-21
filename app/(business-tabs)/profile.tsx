@@ -15,11 +15,8 @@ import {
 import * as WebBrowser from 'expo-web-browser';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
-import { supabase } from '@/lib/supabase';
 import { useRouter } from 'expo-router';
-import { Building2, MapPin, Mail, Phone, LogOut, CheckCircle, Camera, Trophy, TrendingUp, DollarSign, Globe, Lock, Star, FileText, Moon, Sun } from 'lucide-react-native';
-import { geocodeCity } from '@/lib/geocoding';
-import { pickImage, updateProfilePicture } from '@/lib/uploadImage';
+import { Building2, MapPin, Mail, Phone, LogOut, CheckCircle, Trophy, TrendingUp, DollarSign, Globe, Lock, Star, FileText, Moon, Sun } from 'lucide-react-native';
 
 interface Review {
   id: string;
@@ -224,19 +221,7 @@ export default function BusinessProfile() {
 
         if (error) throw error;
       } else {
-        const { error } = await supabase.from('businesses').insert({
-          owner_id: session!.user.id,
-          business_name: businessName,
-          city: city.trim().toLowerCase(),
-          state: state.trim().toUpperCase(),
-          description,
-          website: website.trim() || null,
-          radius_miles: radiusMiles,
-          latitude: coords?.latitude || null,
-          longitude: coords?.longitude || null,
-        });
-
-        if (error) throw error;
+        throw new Error('Business profile creation is not available in demo mode');
       }
 
       Alert.alert('Success', 'Business profile saved successfully');
@@ -254,12 +239,8 @@ export default function BusinessProfile() {
     if (!business || !session) return;
 
     try {
-      const { data: { session: authSession } } = await supabase.auth.getSession();
-
-      if (!authSession?.access_token) {
-        Alert.alert('Error', 'You must be logged in to subscribe');
-        return;
-      }
+      Alert.alert('Not Available', 'Subscription is not available in demo mode');
+      return;
 
       const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
 
@@ -341,13 +322,7 @@ export default function BusinessProfile() {
 
     setUpdatingPassword(true);
     try {
-      const { error } = await supabase.auth.updateUser({
-        password: newPassword,
-      });
-
-      if (error) throw error;
-
-      Alert.alert('Success', 'Password updated successfully');
+      throw new Error('Password update is not available in demo mode');
       setChangingPassword(false);
       setCurrentPassword('');
       setNewPassword('');

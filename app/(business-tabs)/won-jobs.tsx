@@ -9,9 +9,7 @@ import {
   TouchableOpacity,
   Image,
 } from 'react-native';
-import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/lib/supabase';
-import { MapPin, Phone, User, DollarSign, MessageCircle, CheckCircle } from 'lucide-react-native';
+import { CheckCircle } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import ConfirmModal from '@/components/ConfirmModal';
 import SuccessModal from '@/components/SuccessModal';

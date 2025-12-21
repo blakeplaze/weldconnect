@@ -10,7 +10,7 @@ import {
   Alert,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { supabase } from '@/lib/supabase';
+import { localDb } from '@/lib/localDb';
 import { MapPin, DollarSign, Clock, CheckCircle, Award, MessageCircle, Star } from 'lucide-react-native';
 import JobAwardConfirmModal from '@/components/JobAwardConfirmModal';
 import JobAwardSuccessModal from '@/components/JobAwardSuccessModal';
@@ -156,11 +156,7 @@ export default function JobDetails() {
   const confirmAwardJob = async () => {
     setAwarding(true);
     try {
-      const { data, error } = await supabase.rpc('calculate_and_award_job', {
-        p_job_id: id,
-      });
-
-      if (error) throw error;
+      throw new Error('Job awarding is not available in demo mode');
 
       const winningBidId = data?.[0]?.v_winner_bid_id;
       const winningBidAmount = data?.[0]?.v_winner_amount;

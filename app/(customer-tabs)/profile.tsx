@@ -3,9 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, ActivityIn
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useRouter } from 'expo-router';
-import { User, Phone, Mail, LogOut, Camera, DollarSign, Briefcase, Lock, FileText, Moon, Sun } from 'lucide-react-native';
-import { pickImage, updateProfilePicture } from '@/lib/uploadImage';
-import { supabase } from '@/lib/supabase';
+import { User, Phone, Mail, LogOut, DollarSign, Briefcase, Lock, FileText, Moon, Sun } from 'lucide-react-native';
 
 interface CustomerStats {
   totalSpent: number;
@@ -108,13 +106,7 @@ export default function Profile() {
 
     setUpdatingPassword(true);
     try {
-      const { error } = await supabase.auth.updateUser({
-        password: newPassword,
-      });
-
-      if (error) throw error;
-
-      Alert.alert('Success', 'Password updated successfully');
+      throw new Error('Password update is not available in demo mode');
       setChangingPassword(false);
       setCurrentPassword('');
       setNewPassword('');

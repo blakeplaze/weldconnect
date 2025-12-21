@@ -8,9 +8,7 @@ import {
   ActivityIndicator,
   Modal,
 } from 'react-native';
-import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/lib/supabase';
-import { useRouter, useFocusEffect } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { MessageCircle, Trash2, CheckSquare, Square } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 

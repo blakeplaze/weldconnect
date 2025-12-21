@@ -9,7 +9,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Star } from 'lucide-react-native';
-import { supabase } from '@/lib/supabase';
+import { localDb } from '@/lib/localDb';
 import { useTheme } from '@/contexts/ThemeContext';
 
 interface ReviewModalProps {
