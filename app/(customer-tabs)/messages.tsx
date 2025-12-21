@@ -12,25 +12,21 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import { MessageCircle, Trash2, CheckSquare, Square } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
+import { localDb } from '@/lib/localDb';
 
-interface Conversation {
+interface ConversationDisplay {
   id: string;
-  job_id: string;
-  customer_id: string;
-  business_id: string;
-  last_message_at: string;
-  job_title: string;
   other_user_name: string;
   other_user_id: string;
   last_message: string | null;
-  unread_count: number;
+  last_message_at: string;
 }
 
 export default function MessagesScreen() {
   const { userProfile } = useAuth();
   const router = useRouter();
   const { theme } = useTheme();
-  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [conversations, setConversations] = useState<ConversationDisplay[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedConversations, setSelectedConversations] = useState<Set<string>>(new Set());
@@ -38,62 +34,34 @@ export default function MessagesScreen() {
   const [isDeleting, setIsDeleting] = useState(false);
 
   const loadConversations = useCallback(async () => {
-    if (!userProfile?.id) return;
+    if (!userProfile?.id) {
+      setLoading(false);
+      return;
+    }
 
     try {
-      const { data: convos, error } = await supabase
-        .from('conversations')
-        .select(`
-          id,
-          job_id,
-          customer_id,
-          business_id,
-          last_message_at,
-          jobs!inner(title),
-          customer:profiles!conversations_customer_id_fkey(id, full_name),
-          business:profiles!conversations_business_id_fkey(id, full_name)
-        `)
-        .or(`customer_id.eq.${userProfile.id},business_id.eq.${userProfile.id}`)
-        .order('last_message_at', { ascending: false });
-
-      if (error) throw error;
+      const convos = await localDb.getConversations(userProfile.id);
 
       const conversationsWithDetails = await Promise.all(
-        (convos || []).map(async (convo: any) => {
-          const isCustomer = convo.customer_id === userProfile.id;
-          const otherUserId = isCustomer ? convo.business_id : convo.customer_id;
-          const otherUserName = isCustomer
-            ? convo.business?.full_name
-            : convo.customer?.full_name;
+        convos.map(async (convo) => {
+          const otherUserId = convo.participant1_id === userProfile.id
+            ? convo.participant2_id
+            : convo.participant1_id;
 
-          const { data: lastMessage } = await supabase
-            .from('messages')
-            .select('message_text')
-            .eq('conversation_id', convo.id)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .maybeSingle();
-
-          const { count: unreadCount } = await supabase
-            .from('messages')
-            .select('*', { count: 'exact', head: true })
-            .eq('conversation_id', convo.id)
-            .neq('sender_id', userProfile.id)
-            .is('read_at', null);
+          const otherUser = await localDb.getProfile(otherUserId);
 
           return {
             id: convo.id,
-            job_id: convo.job_id,
-            customer_id: convo.customer_id,
-            business_id: convo.business_id,
-            last_message_at: convo.last_message_at,
-            job_title: convo.jobs?.title || 'Unknown Job',
-            other_user_name: otherUserName || 'Unknown User',
+            other_user_name: otherUser?.full_name || 'Unknown User',
             other_user_id: otherUserId,
-            last_message: lastMessage?.message_text || null,
-            unread_count: unreadCount || 0,
+            last_message: convo.last_message || null,
+            last_message_at: convo.last_message_at || convo.created_at,
           };
         })
+      );
+
+      conversationsWithDetails.sort((a, b) =>
+        new Date(b.last_message_at).getTime() - new Date(a.last_message_at).getTime()
       );
 
       setConversations(conversationsWithDetails);
@@ -105,23 +73,8 @@ export default function MessagesScreen() {
   }, [userProfile?.id]);
 
   useEffect(() => {
-    if (userProfile?.id) {
-      const subscription = supabase
-        .channel('messages_changes')
-        .on(
-          'postgres_changes',
-          { event: '*', schema: 'public', table: 'messages' },
-          () => {
-            loadConversations();
-          }
-        )
-        .subscribe();
-
-      return () => {
-        subscription.unsubscribe();
-      };
-    }
-  }, [userProfile?.id, loadConversations]);
+    loadConversations();
+  }, [loadConversations]);
 
   useFocusEffect(
     useCallback(() => {
@@ -154,12 +107,9 @@ export default function MessagesScreen() {
   const confirmDelete = async () => {
     setIsDeleting(true);
     try {
-      const { error } = await supabase
-        .from('conversations')
-        .delete()
-        .in('id', Array.from(selectedConversations));
-
-      if (error) throw error;
+      await Promise.all(
+        Array.from(selectedConversations).map(id => localDb.deleteConversation(id))
+      );
 
       setConversations(
         conversations.filter((c) => !selectedConversations.has(c.id))
@@ -189,7 +139,7 @@ export default function MessagesScreen() {
     return date.toLocaleDateString();
   };
 
-  const renderConversation = ({ item }: { item: Conversation }) => {
+  const renderConversation = ({ item }: { item: ConversationDisplay }) => {
     const isSelected = selectedConversations.has(item.id);
 
     return (
@@ -221,19 +171,9 @@ export default function MessagesScreen() {
             <Text style={[styles.userName, { color: theme.colors.text }]}>{item.other_user_name}</Text>
             <Text style={[styles.timeText, { color: theme.colors.textSecondary }]}>{formatTime(item.last_message_at)}</Text>
           </View>
-          <Text style={[styles.jobTitle, { color: theme.colors.primary }]} numberOfLines={1}>
-            {item.job_title}
+          <Text style={[styles.lastMessage, { color: theme.colors.textSecondary }]} numberOfLines={2}>
+            {item.last_message || 'No messages yet'}
           </Text>
-          <View style={styles.messagePreview}>
-            <Text style={[styles.lastMessage, { color: theme.colors.textSecondary }]} numberOfLines={1}>
-              {item.last_message || 'No messages yet'}
-            </Text>
-            {item.unread_count > 0 && (
-              <View style={[styles.unreadBadge, { backgroundColor: theme.colors.primary }]}>
-                <Text style={[styles.unreadText, { color: theme.colors.card }]}>{item.unread_count}</Text>
-              </View>
-            )}
-          </View>
         </View>
       </TouchableOpacity>
     );

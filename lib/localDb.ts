@@ -506,6 +506,13 @@ class LocalDB {
     this.data.applications = this.data.applications.filter(a => a.id !== id);
     await this.persist();
   }
+
+  async deleteConversation(id: string) {
+    await this.initialize();
+    this.data.conversations = this.data.conversations.filter(c => c.id !== id);
+    this.data.messages = this.data.messages.filter(m => m.conversation_id !== id);
+    await this.persist();
+  }
 }
 
 export const localDb = new LocalDB();
