@@ -299,24 +299,55 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     userType: 'customer' | 'business',
     phone?: string
   ) => {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-    });
+    console.log('SignUp: Starting signup process');
+    console.log('SignUp: Email:', email);
+    console.log('SignUp: User type:', userType);
 
-    if (error) throw error;
-
-    if (data.user) {
-      const { error: profileError } = await supabase.from('profiles').insert({
-        id: data.user.id,
-        full_name: fullName,
-        phone: phone || null,
-        user_type: userType,
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
       });
 
-      if (profileError) throw profileError;
+      console.log('SignUp: Supabase response:', {
+        hasData: !!data,
+        hasError: !!error,
+        hasUser: !!data?.user,
+        userId: data?.user?.id
+      });
 
-      await loadUserProfile(data.user.id);
+      if (error) {
+        console.error('SignUp: Auth error:', error);
+        throw error;
+      }
+
+      if (data.user) {
+        console.log('SignUp: Creating profile for user:', data.user.id);
+
+        const { error: profileError } = await supabase.from('profiles').insert({
+          id: data.user.id,
+          full_name: fullName,
+          phone: phone || null,
+          user_type: userType,
+        });
+
+        if (profileError) {
+          console.error('SignUp: Profile creation error:', profileError);
+          throw profileError;
+        }
+
+        console.log('SignUp: Profile created successfully');
+        console.log('SignUp: Loading user profile');
+
+        await loadUserProfile(data.user.id);
+
+        console.log('SignUp: Signup complete');
+      } else {
+        console.warn('SignUp: No user returned from signup');
+      }
+    } catch (err) {
+      console.error('SignUp: Exception during signup:', err);
+      throw err;
     }
   };
 
