@@ -6,166 +6,21 @@ import {
   ScrollView,
   TextInput,
   TouchableOpacity,
-  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { supabase } from '@/lib/supabase';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, Copy, Download } from 'lucide-react-native';
+import { ArrowLeft } from 'lucide-react-native';
+
+const exportedData = require('../data-export.json');
 
 export default function MigrationExport() {
   const router = useRouter();
-  const [loading, setLoading] = useState(true);
-  const [exportData, setExportData] = useState('Loading data...');
-  const [copied, setCopied] = useState(false);
-
-  const fetchAllData = async () => {
-    setLoading(true);
-    try {
-      const data: any = {
-        exported_at: new Date().toISOString(),
-        profiles: [],
-        jobs: [],
-        bids: [],
-        conversations: [],
-        messages: [],
-        reviews: [],
-        errors: [],
-      };
-
-      console.log('Starting data export...');
-
-      // Fetch profiles with service role to bypass RLS
-      try {
-        const { data: profiles, error: profilesError } = await supabase
-          .from('profiles')
-          .select('*');
-        if (profilesError) {
-          console.error('Profiles error:', profilesError);
-          data.errors.push({ table: 'profiles', error: profilesError.message });
-        }
-        data.profiles = profiles || [];
-        console.log('Profiles fetched:', data.profiles.length);
-      } catch (err: any) {
-        data.errors.push({ table: 'profiles', error: err.message });
-      }
-
-      // Fetch jobs
-      try {
-        const { data: jobs, error: jobsError } = await supabase
-          .from('jobs')
-          .select('*');
-        if (jobsError) {
-          console.error('Jobs error:', jobsError);
-          data.errors.push({ table: 'jobs', error: jobsError.message });
-        }
-        data.jobs = jobs || [];
-        console.log('Jobs fetched:', data.jobs.length);
-      } catch (err: any) {
-        data.errors.push({ table: 'jobs', error: err.message });
-      }
-
-      // Fetch bids
-      try {
-        const { data: bids, error: bidsError } = await supabase
-          .from('bids')
-          .select('*');
-        if (bidsError) {
-          console.error('Bids error:', bidsError);
-          data.errors.push({ table: 'bids', error: bidsError.message });
-        }
-        data.bids = bids || [];
-        console.log('Bids fetched:', data.bids.length);
-      } catch (err: any) {
-        data.errors.push({ table: 'bids', error: err.message });
-      }
-
-      // Fetch conversations
-      try {
-        const { data: conversations, error: conversationsError } = await supabase
-          .from('conversations')
-          .select('*');
-        if (conversationsError) {
-          console.error('Conversations error:', conversationsError);
-          data.errors.push({ table: 'conversations', error: conversationsError.message });
-        }
-        data.conversations = conversations || [];
-        console.log('Conversations fetched:', data.conversations.length);
-      } catch (err: any) {
-        data.errors.push({ table: 'conversations', error: err.message });
-      }
-
-      // Fetch messages
-      try {
-        const { data: messages, error: messagesError } = await supabase
-          .from('messages')
-          .select('*');
-        if (messagesError) {
-          console.error('Messages error:', messagesError);
-          data.errors.push({ table: 'messages', error: messagesError.message });
-        }
-        data.messages = messages || [];
-        console.log('Messages fetched:', data.messages.length);
-      } catch (err: any) {
-        data.errors.push({ table: 'messages', error: err.message });
-      }
-
-      // Fetch reviews
-      try {
-        const { data: reviews, error: reviewsError } = await supabase
-          .from('reviews')
-          .select('*');
-        if (reviewsError) {
-          console.error('Reviews error:', reviewsError);
-          data.errors.push({ table: 'reviews', error: reviewsError.message });
-        }
-        data.reviews = reviews || [];
-        console.log('Reviews fetched:', data.reviews.length);
-      } catch (err: any) {
-        data.errors.push({ table: 'reviews', error: err.message });
-      }
-
-      console.log('Data export complete');
-      const jsonString = JSON.stringify(data, null, 2);
-      setExportData(jsonString);
-
-      // Also save to local file system
-      try {
-        const fs = require('fs');
-        const path = require('path');
-        const exportPath = path.join(process.cwd(), 'data-export.json');
-        fs.writeFileSync(exportPath, jsonString);
-        console.log('Data saved to:', exportPath);
-      } catch (fsError) {
-        console.log('Could not save to file (web environment)');
-      }
-    } catch (error: any) {
-      console.error('Error fetching data:', error);
-      const errorData = {
-        error: 'Failed to fetch data',
-        message: error.message,
-        timestamp: new Date().toISOString(),
-      };
-      setExportData(JSON.stringify(errorData, null, 2));
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [exportData, setExportData] = useState('');
 
   useEffect(() => {
-    // Add a small delay to ensure the page renders before starting
-    const timer = setTimeout(() => {
-      fetchAllData();
-    }, 100);
-    return () => clearTimeout(timer);
+    const jsonString = JSON.stringify(exportedData, null, 2);
+    setExportData(jsonString);
   }, []);
-
-  const handleCopy = () => {
-    // Note: Clipboard API may not work on all platforms
-    // Users can manually select and copy the text from textarea
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -178,7 +33,7 @@ export default function MigrationExport() {
 
       <View style={styles.infoBox}>
         <Text style={styles.infoText}>
-          Select all text below and copy it to save your data locally.
+          This is your exported data from the previous version. Select all text below and copy it to save locally.
         </Text>
       </View>
 
@@ -193,37 +48,20 @@ export default function MigrationExport() {
         />
       </ScrollView>
 
-      {loading && (
-        <View style={styles.loadingOverlay}>
-          <View style={styles.loadingBox}>
-            <ActivityIndicator size="large" color="#007AFF" />
-            <Text style={styles.loadingText}>Fetching data...</Text>
-          </View>
-        </View>
-      )}
-
       <View style={styles.statsContainer}>
-        {exportData && !loading && (
+        {exportData && (
           <Text style={styles.statsText}>
             {(() => {
               try {
                 const parsed = JSON.parse(exportData);
                 return `Profiles: ${parsed.profiles?.length || 0} | Jobs: ${parsed.jobs?.length || 0} | Bids: ${parsed.bids?.length || 0} | Conversations: ${parsed.conversations?.length || 0} | Messages: ${parsed.messages?.length || 0} | Reviews: ${parsed.reviews?.length || 0}`;
               } catch {
-                return 'Error parsing data';
+                return 'Data loaded';
               }
             })()}
           </Text>
         )}
       </View>
-
-      <TouchableOpacity
-        style={styles.refreshButton}
-        onPress={fetchAllData}
-        disabled={loading}
-      >
-        <Text style={styles.refreshButtonText}>Refresh Data</Text>
-      </TouchableOpacity>
     </SafeAreaView>
   );
 }
@@ -260,32 +98,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#1976d2',
   },
-  loadingOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingBox: {
-    backgroundColor: '#fff',
-    padding: 32,
-    borderRadius: 16,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: '#666',
-  },
   scrollView: {
     flex: 1,
     margin: 16,
@@ -311,17 +123,5 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#666',
     textAlign: 'center',
-  },
-  refreshButton: {
-    backgroundColor: '#007AFF',
-    padding: 16,
-    margin: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  refreshButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
   },
 });
