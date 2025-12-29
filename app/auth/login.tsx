@@ -41,11 +41,8 @@ export default function Login() {
 
     setLoading(true);
     try {
-      console.log('Login: Attempting sign in');
       await signIn(email, password);
-      console.log('Login: Sign in successful');
     } catch (err: any) {
-      console.error('Login: Sign in failed:', err);
       setError(err.message || 'Failed to sign in');
       setLoading(false);
     }
@@ -100,13 +97,6 @@ export default function Login() {
             ) : (
               <Text style={styles.buttonText}>Sign In</Text>
             )}
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            onPress={() => router.push('/auth/forgot-password')}
-            disabled={loading}
-          >
-            <Text style={styles.linkText}>Forgot Password?</Text>
           </TouchableOpacity>
 
           <TouchableOpacity

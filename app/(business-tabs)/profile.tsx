@@ -259,13 +259,7 @@ export default function BusinessProfile() {
       }
 
       const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
-
-      let baseUrl = 'myapp://';
-      if (Platform.OS === 'web') {
-        const origin = window.location.origin;
-        const isLocalhost = origin.includes('localhost') || origin.includes('127.0.0.1');
-        baseUrl = isLocalhost ? origin : origin.replace(/^http:/, 'https:');
-      }
+      const baseUrl = Platform.OS === 'web' ? window.location.origin : 'myapp://';
 
       const response = await fetch(`${supabaseUrl}/functions/v1/stripe-checkout`, {
         method: 'POST',
