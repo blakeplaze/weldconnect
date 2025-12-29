@@ -15,8 +15,8 @@ import { ArrowLeft, Copy, Download } from 'lucide-react-native';
 
 export default function MigrationExport() {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
-  const [exportData, setExportData] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [exportData, setExportData] = useState('Loading data...');
   const [copied, setCopied] = useState(false);
 
   const fetchAllData = async () => {
@@ -30,62 +30,134 @@ export default function MigrationExport() {
         conversations: [],
         messages: [],
         reviews: [],
+        errors: [],
       };
 
-      // Fetch profiles
-      const { data: profiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select('*');
-      if (profilesError) console.error('Profiles error:', profilesError);
-      data.profiles = profiles || [];
+      console.log('Starting data export...');
+
+      // Fetch profiles with service role to bypass RLS
+      try {
+        const { data: profiles, error: profilesError } = await supabase
+          .from('profiles')
+          .select('*');
+        if (profilesError) {
+          console.error('Profiles error:', profilesError);
+          data.errors.push({ table: 'profiles', error: profilesError.message });
+        }
+        data.profiles = profiles || [];
+        console.log('Profiles fetched:', data.profiles.length);
+      } catch (err: any) {
+        data.errors.push({ table: 'profiles', error: err.message });
+      }
 
       // Fetch jobs
-      const { data: jobs, error: jobsError } = await supabase
-        .from('jobs')
-        .select('*');
-      if (jobsError) console.error('Jobs error:', jobsError);
-      data.jobs = jobs || [];
+      try {
+        const { data: jobs, error: jobsError } = await supabase
+          .from('jobs')
+          .select('*');
+        if (jobsError) {
+          console.error('Jobs error:', jobsError);
+          data.errors.push({ table: 'jobs', error: jobsError.message });
+        }
+        data.jobs = jobs || [];
+        console.log('Jobs fetched:', data.jobs.length);
+      } catch (err: any) {
+        data.errors.push({ table: 'jobs', error: err.message });
+      }
 
       // Fetch bids
-      const { data: bids, error: bidsError } = await supabase
-        .from('bids')
-        .select('*');
-      if (bidsError) console.error('Bids error:', bidsError);
-      data.bids = bids || [];
+      try {
+        const { data: bids, error: bidsError } = await supabase
+          .from('bids')
+          .select('*');
+        if (bidsError) {
+          console.error('Bids error:', bidsError);
+          data.errors.push({ table: 'bids', error: bidsError.message });
+        }
+        data.bids = bids || [];
+        console.log('Bids fetched:', data.bids.length);
+      } catch (err: any) {
+        data.errors.push({ table: 'bids', error: err.message });
+      }
 
       // Fetch conversations
-      const { data: conversations, error: conversationsError } = await supabase
-        .from('conversations')
-        .select('*');
-      if (conversationsError) console.error('Conversations error:', conversationsError);
-      data.conversations = conversations || [];
+      try {
+        const { data: conversations, error: conversationsError } = await supabase
+          .from('conversations')
+          .select('*');
+        if (conversationsError) {
+          console.error('Conversations error:', conversationsError);
+          data.errors.push({ table: 'conversations', error: conversationsError.message });
+        }
+        data.conversations = conversations || [];
+        console.log('Conversations fetched:', data.conversations.length);
+      } catch (err: any) {
+        data.errors.push({ table: 'conversations', error: err.message });
+      }
 
       // Fetch messages
-      const { data: messages, error: messagesError } = await supabase
-        .from('messages')
-        .select('*');
-      if (messagesError) console.error('Messages error:', messagesError);
-      data.messages = messages || [];
+      try {
+        const { data: messages, error: messagesError } = await supabase
+          .from('messages')
+          .select('*');
+        if (messagesError) {
+          console.error('Messages error:', messagesError);
+          data.errors.push({ table: 'messages', error: messagesError.message });
+        }
+        data.messages = messages || [];
+        console.log('Messages fetched:', data.messages.length);
+      } catch (err: any) {
+        data.errors.push({ table: 'messages', error: err.message });
+      }
 
       // Fetch reviews
-      const { data: reviews, error: reviewsError } = await supabase
-        .from('reviews')
-        .select('*');
-      if (reviewsError) console.error('Reviews error:', reviewsError);
-      data.reviews = reviews || [];
+      try {
+        const { data: reviews, error: reviewsError } = await supabase
+          .from('reviews')
+          .select('*');
+        if (reviewsError) {
+          console.error('Reviews error:', reviewsError);
+          data.errors.push({ table: 'reviews', error: reviewsError.message });
+        }
+        data.reviews = reviews || [];
+        console.log('Reviews fetched:', data.reviews.length);
+      } catch (err: any) {
+        data.errors.push({ table: 'reviews', error: err.message });
+      }
 
+      console.log('Data export complete');
       const jsonString = JSON.stringify(data, null, 2);
       setExportData(jsonString);
-    } catch (error) {
+
+      // Also save to local file system
+      try {
+        const fs = require('fs');
+        const path = require('path');
+        const exportPath = path.join(process.cwd(), 'data-export.json');
+        fs.writeFileSync(exportPath, jsonString);
+        console.log('Data saved to:', exportPath);
+      } catch (fsError) {
+        console.log('Could not save to file (web environment)');
+      }
+    } catch (error: any) {
       console.error('Error fetching data:', error);
-      setExportData(JSON.stringify({ error: 'Failed to fetch data' }, null, 2));
+      const errorData = {
+        error: 'Failed to fetch data',
+        message: error.message,
+        timestamp: new Date().toISOString(),
+      };
+      setExportData(JSON.stringify(errorData, null, 2));
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchAllData();
+    // Add a small delay to ensure the page renders before starting
+    const timer = setTimeout(() => {
+      fetchAllData();
+    }, 100);
+    return () => clearTimeout(timer);
   }, []);
 
   const handleCopy = () => {
@@ -110,22 +182,24 @@ export default function MigrationExport() {
         </Text>
       </View>
 
-      {loading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#007AFF" />
-          <Text style={styles.loadingText}>Fetching data...</Text>
+      <ScrollView style={styles.scrollView}>
+        <TextInput
+          style={styles.textArea}
+          multiline
+          editable={true}
+          selectTextOnFocus={true}
+          value={exportData}
+          placeholder="Loading data..."
+        />
+      </ScrollView>
+
+      {loading && (
+        <View style={styles.loadingOverlay}>
+          <View style={styles.loadingBox}>
+            <ActivityIndicator size="large" color="#007AFF" />
+            <Text style={styles.loadingText}>Fetching data...</Text>
+          </View>
         </View>
-      ) : (
-        <ScrollView style={styles.scrollView}>
-          <TextInput
-            style={styles.textArea}
-            multiline
-            editable={true}
-            selectTextOnFocus={true}
-            value={exportData}
-            placeholder="Loading data..."
-          />
-        </ScrollView>
       )}
 
       <View style={styles.statsContainer}>
@@ -186,10 +260,26 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#1976d2',
   },
-  loadingContainer: {
-    flex: 1,
+  loadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  loadingBox: {
+    backgroundColor: '#fff',
+    padding: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
   },
   loadingText: {
     marginTop: 16,
