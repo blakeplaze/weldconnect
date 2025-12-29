@@ -1,23 +1,7 @@
-import { Tabs, Redirect } from 'expo-router';
+import { Tabs } from 'expo-router';
 import { Briefcase, DollarSign, List, User, MessageCircle, HelpCircle } from 'lucide-react-native';
-import { useAuth } from '@/contexts/AuthContext';
-import { View, ActivityIndicator, StyleSheet } from 'react-native';
 
 export default function BusinessTabLayout() {
-  const { session, loading } = useAuth();
-
-  if (loading) {
-    return (
-      <View style={styles.container}>
-        <ActivityIndicator size="large" color="#007AFF" />
-      </View>
-    );
-  }
-
-  if (!session) {
-    return <Redirect href="/auth/login" />;
-  }
-
   return (
     <Tabs
       screenOptions={{
@@ -75,12 +59,3 @@ export default function BusinessTabLayout() {
     </Tabs>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-  },
-});

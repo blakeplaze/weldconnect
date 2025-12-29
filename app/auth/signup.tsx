@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   View,
   Text,
@@ -22,18 +22,8 @@ export default function SignUp() {
   const [userType, setUserType] = useState<'customer' | 'business'>('customer');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { signUp, session, userProfile } = useAuth();
+  const { signUp } = useAuth();
   const router = useRouter();
-
-  useEffect(() => {
-    if (session && userProfile) {
-      if (userProfile.user_type === 'business') {
-        router.replace('/(business-tabs)');
-      } else {
-        router.replace('/(customer-tabs)');
-      }
-    }
-  }, [session, userProfile]);
 
   const handleSignUp = async () => {
     setError('');
@@ -45,6 +35,7 @@ export default function SignUp() {
     setLoading(true);
     try {
       await signUp(email, password, fullName, userType, phone);
+      router.replace('/');
     } catch (err: any) {
       setError(err.message || 'Failed to create account');
       setLoading(false);
