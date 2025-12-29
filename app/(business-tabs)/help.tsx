@@ -229,6 +229,7 @@ export default function Help() {
 
       if (error) throw error;
 
+      setShowDeleteModal(false);
     } catch (error) {
       console.error('Error deleting account:', error);
       setErrorMessage('Failed to delete account. Please try again or contact support.');

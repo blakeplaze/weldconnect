@@ -259,7 +259,13 @@ export default function BusinessProfile() {
       }
 
       const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
-      const baseUrl = Platform.OS === 'web' ? window.location.origin : 'myapp://';
+
+      let baseUrl = 'myapp://';
+      if (Platform.OS === 'web') {
+        const origin = window.location.origin;
+        const isLocalhost = origin.includes('localhost') || origin.includes('127.0.0.1');
+        baseUrl = isLocalhost ? origin : origin.replace(/^http:/, 'https:');
+      }
 
       const response = await fetch(`${supabaseUrl}/functions/v1/stripe-checkout`, {
         method: 'POST',
@@ -356,8 +362,7 @@ export default function BusinessProfile() {
     try {
       console.log('Profile: Calling signOut function');
       await signOut();
-      console.log('Profile: SignOut completed successfully, navigating to login');
-      router.replace('/auth/login');
+      console.log('Profile: SignOut completed successfully');
     } catch (error: any) {
       console.error('Profile: Error signing out:', error);
       Alert.alert('Error', error?.message || 'Failed to sign out. Please try again.');
