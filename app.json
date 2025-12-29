@@ -2,7 +2,7 @@
   "expo": {
     "name": "WeldConnect - Mobile Welding Network",
     "slug": "weldconnect",
-    "version": "1.0.3",
+    "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "myapp",
@@ -12,16 +12,10 @@
       "supportsTablet": true
     },
     "android": {
-      "package": "fast.weldingservice",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/icon.png",
         "backgroundColor": "#ffffff"
-      },
-      "permissions": [
-        "CAMERA",
-        "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE"
-      ]
+      }
     },
     "notification": {
       "icon": "./assets/images/icon.png",
@@ -47,15 +41,6 @@
     ],
     "experiments": {
       "typedRoutes": true
-    },
-    "extra": {
-      "router": {},
-      "eas": {
-        "projectId": "220fa6ec-9809-40bc-bd1c-8b6a6f7afe74"
-      },
-      "EXPO_PUBLIC_SUPABASE_URL": "https://wdzvtsixyefyidflxlqj.supabase.co",
-      "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndkenZ0c2l4eWVmeWlkZmx4bHFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU0NzY5MTAsImV4cCI6MjA4MTA1MjkxMH0.UXZiKldb1x0-Jf75VXjrs8wakbZrSmWISs-fl5x_LsI"
     }
   }
 }
-

@@ -11,11 +11,11 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { ChevronDown, ChevronUp, Mail, HelpCircle, Trash2, Clock } from 'lucide-react-native';
+import { ChevronDown, ChevronUp, Mail, HelpCircle, Clock, Trash2 } from 'lucide-react-native';
+import { supabase } from '@/lib/supabase';
 import ContactSuccessModal from '@/components/ContactSuccessModal';
 import DeleteAccountModal from '@/components/DeleteAccountModal';
 import { useAuth } from '@/contexts/AuthContext';
-import { useTheme } from '@/contexts/ThemeContext';
 
 interface FAQ {
   question: string;
@@ -65,7 +65,6 @@ const COOLDOWN_MINUTES = 20;
 
 export default function Help() {
   const { session } = useAuth();
-  const { theme } = useTheme();
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -100,7 +99,38 @@ export default function Help() {
   }, [cooldownRemaining]);
 
   const checkCooldown = async () => {
-    setIsCheckingCooldown(false);
+    if (!session?.user) {
+      setIsCheckingCooldown(false);
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('contact_form_submissions')
+        .select('submitted_at')
+        .eq('user_id', session.user.id)
+        .order('submitted_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (error) throw error;
+
+      if (data) {
+        const lastSubmission = new Date(data.submitted_at);
+        const now = new Date();
+        const minutesSinceLastSubmission = Math.floor(
+          (now.getTime() - lastSubmission.getTime()) / (1000 * 60)
+        );
+
+        if (minutesSinceLastSubmission < COOLDOWN_MINUTES) {
+          setCooldownRemaining(COOLDOWN_MINUTES - minutesSinceLastSubmission);
+        }
+      }
+    } catch (error) {
+      console.error('Error checking cooldown:', error);
+    } finally {
+      setIsCheckingCooldown(false);
+    }
   };
 
   const toggleFAQ = (index: number) => {
@@ -108,20 +138,109 @@ export default function Help() {
   };
 
   const handleSubmit = async () => {
-    setErrorMessage('Contact form is not available in demo mode');
+    console.log('handleSubmit called');
+    setErrorMessage(null);
+
+    if (!session?.user) {
+      console.log('No user found');
+      setErrorMessage('You must be logged in to send a message');
+      return;
+    }
+
+    console.log('User:', session.user.id);
+
+    if (cooldownRemaining !== null && cooldownRemaining > 0) {
+      console.log('Cooldown active:', cooldownRemaining);
+      setErrorMessage(
+        `You can submit another message in ${cooldownRemaining} minute${cooldownRemaining !== 1 ? 's' : ''}.`
+      );
+      return;
+    }
+
+    if (!name.trim() || !email.trim() || !subject.trim() || !message.trim()) {
+      console.log('Empty fields');
+      setErrorMessage('Please fill in all fields');
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      console.log('Invalid email');
+      setErrorMessage('Please enter a valid email address');
+      return;
+    }
+
+    console.log('Starting submission');
+    setIsSubmitting(true);
+
+    try {
+      console.log('Inserting into database');
+      const { error: dbError } = await supabase
+        .from('contact_form_submissions')
+        .insert({
+          user_id: session.user.id,
+          name: name.trim(),
+          email: email.trim(),
+          subject: subject.trim(),
+          message: message.trim(),
+        });
+
+      if (dbError) {
+        console.error('Database error:', dbError);
+        throw dbError;
+      }
+
+      console.log('Database insert successful');
+
+      const { error: emailError } = await supabase.functions.invoke('send-contact-email', {
+        body: { name, email, subject, message },
+      });
+
+      if (emailError) {
+        console.error('Error sending email:', emailError);
+      }
+
+      console.log('Showing success modal');
+      setShowSuccessModal(true);
+      setName('');
+      setEmail('');
+      setSubject('');
+      setMessage('');
+      setCooldownRemaining(COOLDOWN_MINUTES);
+    } catch (error) {
+      console.error('Error sending message:', error);
+      setErrorMessage('Failed to send message. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const isFormDisabled = cooldownRemaining !== null && cooldownRemaining > 0;
 
   const handleDeleteAccount = async () => {
-    setErrorMessage('Delete account is not available in demo mode');
-    setShowDeleteModal(false);
-    setIsDeleting(false);
+    if (!session?.user) return;
+
+    setIsDeleting(true);
+
+    try {
+      const { error } = await supabase.functions.invoke('delete-account', {
+        method: 'POST',
+      });
+
+      if (error) throw error;
+
+      setShowDeleteModal(false);
+    } catch (error) {
+      console.error('Error deleting account:', error);
+      setErrorMessage('Failed to delete account. Please try again or contact support.');
+      setShowDeleteModal(false);
+      setIsDeleting(false);
+    }
   };
 
   return (
     <KeyboardAvoidingView
-      style={[styles.container, { backgroundColor: theme.colors.background }]}
+      style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ContactSuccessModal
@@ -136,48 +255,48 @@ export default function Help() {
         isDeleting={isDeleting}
       />
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        <View style={[styles.header, { backgroundColor: theme.colors.card, borderBottomColor: theme.colors.border }]}>
-          <HelpCircle size={32} color={theme.colors.primary} />
-          <Text style={[styles.headerTitle, { color: theme.colors.text }]}>Help & Support</Text>
+        <View style={styles.header}>
+          <HelpCircle size={32} color="#2563eb" />
+          <Text style={styles.headerTitle}>Help & Support</Text>
         </View>
 
-        <View style={[styles.section, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
-          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Frequently Asked Questions</Text>
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Frequently Asked Questions</Text>
 
           {faqs.map((faq, index) => (
             <TouchableOpacity
               key={index}
-              style={[styles.faqItem, { borderBottomColor: theme.colors.border }]}
+              style={styles.faqItem}
               onPress={() => toggleFAQ(index)}
               activeOpacity={0.7}
             >
               <View style={styles.faqHeader}>
-                <Text style={[styles.faqQuestion, { color: theme.colors.text }]}>{faq.question}</Text>
+                <Text style={styles.faqQuestion}>{faq.question}</Text>
                 {expandedIndex === index ? (
-                  <ChevronUp size={20} color={theme.colors.primary} />
+                  <ChevronUp size={20} color="#2563eb" />
                 ) : (
-                  <ChevronDown size={20} color={theme.colors.textSecondary} />
+                  <ChevronDown size={20} color="#666" />
                 )}
               </View>
               {expandedIndex === index && (
-                <Text style={[styles.faqAnswer, { color: theme.colors.textSecondary }]}>{faq.answer}</Text>
+                <Text style={styles.faqAnswer}>{faq.answer}</Text>
               )}
             </TouchableOpacity>
           ))}
         </View>
 
-        <View style={[styles.section, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
+        <View style={styles.section}>
           <View style={styles.contactHeader}>
-            <Mail size={24} color={theme.colors.primary} />
-            <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Support</Text>
+            <Mail size={24} color="#2563eb" />
+            <Text style={styles.sectionTitle}>Support</Text>
           </View>
-          <Text style={[styles.contactSubtitle, { color: theme.colors.textSecondary }]}>
+          <Text style={styles.contactSubtitle}>
             Can't find what you're looking for? Send us a message and we'll get back to you as soon as possible.
           </Text>
 
           {isFormDisabled && (
-            <View style={[styles.cooldownBanner, { backgroundColor: theme.colors.warning + '33', borderColor: theme.colors.warning }]}>
-              <Clock size={20} color={theme.colors.warning} />
+            <View style={styles.cooldownBanner}>
+              <Clock size={20} color="#f59e0b" />
               <Text style={styles.cooldownText}>
                 You can submit another message in {cooldownRemaining} minute{cooldownRemaining !== 1 ? 's' : ''}
               </Text>
@@ -185,51 +304,51 @@ export default function Help() {
           )}
 
           {errorMessage && (
-            <View style={[styles.errorBanner, { backgroundColor: theme.colors.error + '20', borderColor: theme.colors.error }]}>
-              <Text style={[styles.errorText, { color: theme.colors.error }]}>{errorMessage}</Text>
+            <View style={styles.errorBanner}>
+              <Text style={styles.errorText}>{errorMessage}</Text>
             </View>
           )}
 
           <View style={styles.form}>
-            <Text style={[styles.label, { color: theme.colors.text }]}>Name</Text>
+            <Text style={styles.label}>Name</Text>
             <TextInput
-              style={[styles.input, { backgroundColor: theme.colors.input || theme.colors.card, borderColor: theme.colors.border, color: theme.colors.text }, isFormDisabled && styles.inputDisabled]}
+              style={[styles.input, isFormDisabled && styles.inputDisabled]}
               value={name}
               onChangeText={setName}
               placeholder="Your name"
-              placeholderTextColor={theme.colors.textSecondary}
+              placeholderTextColor="#999"
               editable={!isFormDisabled}
             />
 
-            <Text style={[styles.label, { color: theme.colors.text }]}>Email</Text>
+            <Text style={styles.label}>Email</Text>
             <TextInput
-              style={[styles.input, { backgroundColor: theme.colors.input || theme.colors.card, borderColor: theme.colors.border, color: theme.colors.text }, isFormDisabled && styles.inputDisabled]}
+              style={[styles.input, isFormDisabled && styles.inputDisabled]}
               value={email}
               onChangeText={setEmail}
               placeholder="your.email@example.com"
-              placeholderTextColor={theme.colors.textSecondary}
+              placeholderTextColor="#999"
               keyboardType="email-address"
               autoCapitalize="none"
               editable={!isFormDisabled}
             />
 
-            <Text style={[styles.label, { color: theme.colors.text }]}>Subject</Text>
+            <Text style={styles.label}>Subject</Text>
             <TextInput
-              style={[styles.input, { backgroundColor: theme.colors.input || theme.colors.card, borderColor: theme.colors.border, color: theme.colors.text }, isFormDisabled && styles.inputDisabled]}
+              style={[styles.input, isFormDisabled && styles.inputDisabled]}
               value={subject}
               onChangeText={setSubject}
               placeholder="What is this regarding?"
-              placeholderTextColor={theme.colors.textSecondary}
+              placeholderTextColor="#999"
               editable={!isFormDisabled}
             />
 
-            <Text style={[styles.label, { color: theme.colors.text }]}>Message</Text>
+            <Text style={styles.label}>Message</Text>
             <TextInput
-              style={[styles.input, styles.messageInput, { backgroundColor: theme.colors.input || theme.colors.card, borderColor: theme.colors.border, color: theme.colors.text }, isFormDisabled && styles.inputDisabled]}
+              style={[styles.input, styles.messageInput, isFormDisabled && styles.inputDisabled]}
               value={message}
               onChangeText={setMessage}
               placeholder="Tell us more..."
-              placeholderTextColor={theme.colors.textSecondary}
+              placeholderTextColor="#999"
               multiline
               numberOfLines={6}
               textAlignVertical="top"
@@ -239,35 +358,34 @@ export default function Help() {
             <TouchableOpacity
               style={[
                 styles.submitButton,
-                { backgroundColor: theme.colors.primary },
                 (isSubmitting || isFormDisabled) && styles.submitButtonDisabled,
               ]}
               onPress={handleSubmit}
               disabled={isSubmitting || isFormDisabled}
             >
               {isSubmitting ? (
-                <ActivityIndicator color={theme.colors.card} />
+                <ActivityIndicator color="#fff" />
               ) : (
-                <Text style={[styles.submitButtonText, { color: theme.colors.card }]}>Send Message</Text>
+                <Text style={styles.submitButtonText}>Send Message</Text>
               )}
             </TouchableOpacity>
           </View>
         </View>
 
-        <View style={[styles.dangerSection, { backgroundColor: theme.colors.card, borderColor: theme.colors.error + '40' }]}>
+        <View style={styles.dangerSection}>
           <View style={styles.dangerHeader}>
-            <Trash2 size={24} color={theme.colors.error} />
-            <Text style={[styles.dangerTitle, { color: theme.colors.error }]}>Danger Zone</Text>
+            <Trash2 size={24} color="#dc2626" />
+            <Text style={styles.dangerTitle}>Danger Zone</Text>
           </View>
-          <Text style={[styles.dangerSubtitle, { color: theme.colors.textSecondary }]}>
+          <Text style={styles.dangerSubtitle}>
             Once you delete your account, there is no going back. This will cancel any active subscriptions and permanently delete all your data.
           </Text>
           <TouchableOpacity
-            style={[styles.deleteButton, { backgroundColor: theme.colors.error }]}
+            style={styles.deleteButton}
             onPress={() => setShowDeleteModal(true)}
           >
-            <Trash2 size={20} color={theme.colors.card} />
-            <Text style={[styles.deleteButtonText, { color: theme.colors.card }]}>Delete Account</Text>
+            <Trash2 size={20} color="#fff" />
+            <Text style={styles.deleteButtonText}>Delete Account</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -278,6 +396,7 @@ export default function Help() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#f8f9fa',
   },
   scrollView: {
     flex: 1,
@@ -289,28 +408,35 @@ const styles = StyleSheet.create({
     paddingTop: 60,
     paddingBottom: 24,
     paddingHorizontal: 20,
+    backgroundColor: '#fff',
     borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
   },
   headerTitle: {
     fontSize: 24,
     fontWeight: '700',
+    color: '#1f2937',
     marginLeft: 12,
   },
   section: {
+    backgroundColor: '#fff',
     marginTop: 16,
     paddingHorizontal: 20,
     paddingVertical: 24,
     borderTopWidth: 1,
     borderBottomWidth: 1,
+    borderColor: '#e5e7eb',
   },
   sectionTitle: {
     fontSize: 20,
     fontWeight: '600',
+    color: '#1f2937',
     marginBottom: 16,
   },
   faqItem: {
     paddingVertical: 16,
     borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
   },
   faqHeader: {
     flexDirection: 'row',
@@ -320,11 +446,13 @@ const styles = StyleSheet.create({
   faqQuestion: {
     fontSize: 16,
     fontWeight: '600',
+    color: '#1f2937',
     flex: 1,
     marginRight: 12,
   },
   faqAnswer: {
     fontSize: 14,
+    color: '#6b7280',
     marginTop: 12,
     lineHeight: 20,
   },
@@ -335,6 +463,7 @@ const styles = StyleSheet.create({
   },
   contactSubtitle: {
     fontSize: 14,
+    color: '#6b7280',
     marginBottom: 24,
     lineHeight: 20,
   },
@@ -344,21 +473,26 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '600',
+    color: '#374151',
     marginBottom: 8,
     marginTop: 16,
   },
   input: {
     borderWidth: 1,
+    borderColor: '#d1d5db',
     borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 16,
+    color: '#1f2937',
+    backgroundColor: '#fff',
   },
   messageInput: {
     minHeight: 120,
     paddingTop: 12,
   },
   submitButton: {
+    backgroundColor: '#2563eb',
     paddingVertical: 16,
     borderRadius: 8,
     alignItems: 'center',
@@ -369,17 +503,20 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   submitButtonText: {
+    color: '#fff',
     fontSize: 16,
     fontWeight: '600',
   },
   cooldownBanner: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: '#fef3c7',
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 8,
     marginBottom: 16,
     borderWidth: 1,
+    borderColor: '#fbbf24',
   },
   cooldownText: {
     fontSize: 14,
@@ -388,25 +525,31 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   inputDisabled: {
+    backgroundColor: '#f3f4f6',
     opacity: 0.6,
   },
   errorBanner: {
+    backgroundColor: '#fee2e2',
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 8,
     marginBottom: 16,
     borderWidth: 1,
+    borderColor: '#ef4444',
   },
   errorText: {
     fontSize: 14,
+    color: '#991b1b',
   },
   dangerSection: {
+    backgroundColor: '#fff',
     marginTop: 16,
     marginBottom: 32,
     paddingHorizontal: 20,
     paddingVertical: 24,
     borderTopWidth: 1,
     borderBottomWidth: 1,
+    borderColor: '#fee2e2',
   },
   dangerHeader: {
     flexDirection: 'row',
@@ -416,14 +559,17 @@ const styles = StyleSheet.create({
   dangerTitle: {
     fontSize: 20,
     fontWeight: '600',
+    color: '#dc2626',
     marginLeft: 8,
   },
   dangerSubtitle: {
     fontSize: 14,
+    color: '#6b7280',
     marginBottom: 20,
     lineHeight: 20,
   },
   deleteButton: {
+    backgroundColor: '#dc2626',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -432,6 +578,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   deleteButtonText: {
+    color: '#fff',
     fontSize: 16,
     fontWeight: '600',
   },

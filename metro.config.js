@@ -7,13 +7,4 @@ config.resolver.extraNodeModules = {
   '@': path.resolve(__dirname),
 };
 
-config.resolver.assetExts = [
-  ...config.resolver.assetExts,
-  'png',
-  'jpg',
-  'jpeg',
-  'gif',
-  'webp',
-];
-
 module.exports = config;

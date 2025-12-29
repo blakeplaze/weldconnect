@@ -1,60 +1,58 @@
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { useAuth } from '@/contexts/AuthContext';
-import { useTheme } from '@/contexts/ThemeContext';
 import { Wrench, Clock } from 'lucide-react-native';
 
 export default function CustomerHome() {
   const { userProfile } = useAuth();
-  const { theme } = useTheme();
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <View style={[styles.header, { backgroundColor: theme.colors.primary }]}>
-        <Text style={[styles.welcomeText, { color: 'rgba(255, 255, 255, 0.9)' }]}>Welcome back,</Text>
-        <Text style={[styles.nameText, { color: '#fff' }]}>{userProfile?.full_name}</Text>
+    <ScrollView style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.welcomeText}>Welcome back,</Text>
+        <Text style={styles.nameText}>{userProfile?.full_name}</Text>
       </View>
 
-      <View style={[styles.card, { backgroundColor: theme.colors.card }]}>
-        <Wrench size={32} color={theme.colors.primary} />
-        <Text style={[styles.cardTitle, { color: theme.colors.text }]}>How WeldConnect Works</Text>
+      <View style={styles.card}>
+        <Wrench size={32} color="#007AFF" />
+        <Text style={styles.cardTitle}>How WeldConnect Works</Text>
         <View style={styles.stepContainer}>
           <View style={styles.step}>
-            <View style={[styles.stepNumber, { backgroundColor: theme.colors.primary }]}>
+            <View style={styles.stepNumber}>
               <Text style={styles.stepNumberText}>1</Text>
             </View>
-            <Text style={[styles.stepText, { color: theme.colors.text }]}>Post your welding job with details</Text>
+            <Text style={styles.stepText}>Post your welding job with details</Text>
           </View>
           <View style={styles.step}>
-            <View style={[styles.stepNumber, { backgroundColor: theme.colors.primary }]}>
+            <View style={styles.stepNumber}>
               <Text style={styles.stepNumberText}>2</Text>
             </View>
-            <Text style={[styles.stepText, { color: theme.colors.text }]}>
+            <Text style={styles.stepText}>
               Local welding businesses will submit bids
             </Text>
           </View>
           <View style={styles.step}>
-            <View style={[styles.stepNumber, { backgroundColor: theme.colors.primary }]}>
+            <View style={styles.stepNumber}>
               <Text style={styles.stepNumberText}>3</Text>
             </View>
-            <Text style={[styles.stepText, { color: theme.colors.text }]}>
+            <Text style={styles.stepText}>
               The average bid wins automatically
             </Text>
           </View>
           <View style={styles.step}>
-            <View style={[styles.stepNumber, { backgroundColor: theme.colors.primary }]}>
+            <View style={styles.stepNumber}>
               <Text style={styles.stepNumberText}>4</Text>
             </View>
-            <Text style={[styles.stepText, { color: theme.colors.text }]}>
+            <Text style={styles.stepText}>
               Winner gets access to full job details
             </Text>
           </View>
         </View>
       </View>
 
-      <View style={[styles.card, { backgroundColor: theme.colors.card }]}>
-        <Clock size={24} color={theme.colors.warning} />
-        <Text style={[styles.cardTitle, { color: theme.colors.text }]}>Quick Tips</Text>
-        <Text style={[styles.tipText, { color: theme.colors.textSecondary }]}>
+      <View style={styles.card}>
+        <Clock size={24} color="#FF9500" />
+        <Text style={styles.cardTitle}>Quick Tips</Text>
+        <Text style={styles.tipText}>
           • Be detailed in your job description{'\n'}
           • Include photos if possible{'\n'}
           • Specify your location and timeline{'\n'}
@@ -68,20 +66,25 @@ export default function CustomerHome() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#f5f5f5',
   },
   header: {
+    backgroundColor: '#007AFF',
     padding: 24,
     paddingTop: 32,
   },
   welcomeText: {
     fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.9)',
   },
   nameText: {
     fontSize: 28,
     fontWeight: '700',
+    color: '#fff',
     marginTop: 4,
   },
   card: {
+    backgroundColor: '#fff',
     margin: 16,
     padding: 20,
     borderRadius: 16,
@@ -90,6 +93,7 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 20,
     fontWeight: '700',
+    color: '#1a1a1a',
   },
   stepContainer: {
     gap: 16,
@@ -103,6 +107,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
+    backgroundColor: '#007AFF',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -114,9 +119,11 @@ const styles = StyleSheet.create({
   stepText: {
     flex: 1,
     fontSize: 16,
+    color: '#333',
   },
   tipText: {
     fontSize: 16,
+    color: '#666',
     lineHeight: 24,
   },
 });

@@ -8,7 +8,6 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { AlertTriangle } from 'lucide-react-native';
-import { useTheme } from '@/contexts/ThemeContext';
 
 interface DeleteAccountModalProps {
   visible: boolean;
@@ -23,8 +22,6 @@ export default function DeleteAccountModal({
   onConfirm,
   isDeleting,
 }: DeleteAccountModalProps) {
-  const { theme } = useTheme();
-
   return (
     <Modal
       visible={visible}
@@ -33,47 +30,47 @@ export default function DeleteAccountModal({
       onRequestClose={onClose}
     >
       <View style={styles.overlay}>
-        <View style={[styles.modal, { backgroundColor: theme.colors.card }]}>
+        <View style={styles.modal}>
           <View style={styles.iconContainer}>
-            <AlertTriangle size={48} color={theme.colors.error} />
+            <AlertTriangle size={48} color="#dc2626" />
           </View>
 
-          <Text style={[styles.title, { color: theme.colors.text }]}>Delete Account</Text>
+          <Text style={styles.title}>Delete Account</Text>
 
-          <Text style={[styles.message, { color: theme.colors.textSecondary }]}>
+          <Text style={styles.message}>
             This action cannot be undone. This will permanently delete your account, cancel any active subscriptions, and remove all your data including:
           </Text>
 
-          <View style={[styles.listContainer, { backgroundColor: theme.colors.input || theme.colors.card }]}>
-            <Text style={[styles.listItem, { color: theme.colors.textSecondary }]}>• Profile information</Text>
-            <Text style={[styles.listItem, { color: theme.colors.textSecondary }]}>• Job posts and bids</Text>
-            <Text style={[styles.listItem, { color: theme.colors.textSecondary }]}>• Messages and conversations</Text>
-            <Text style={[styles.listItem, { color: theme.colors.textSecondary }]}>• Reviews and ratings</Text>
-            <Text style={[styles.listItem, { color: theme.colors.textSecondary }]}>• Active subscriptions</Text>
+          <View style={styles.listContainer}>
+            <Text style={styles.listItem}>• Profile information</Text>
+            <Text style={styles.listItem}>• Job posts and bids</Text>
+            <Text style={styles.listItem}>• Messages and conversations</Text>
+            <Text style={styles.listItem}>• Reviews and ratings</Text>
+            <Text style={styles.listItem}>• Active subscriptions</Text>
           </View>
 
-          <Text style={[styles.warning, { color: theme.colors.error }]}>
+          <Text style={styles.warning}>
             Are you sure you want to delete your account?
           </Text>
 
           <View style={styles.buttonContainer}>
             <TouchableOpacity
-              style={[styles.button, { backgroundColor: theme.colors.input || theme.colors.card }]}
+              style={[styles.button, styles.cancelButton]}
               onPress={onClose}
               disabled={isDeleting}
             >
-              <Text style={[styles.cancelButtonText, { color: theme.colors.text }]}>Cancel</Text>
+              <Text style={styles.cancelButtonText}>Cancel</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.button, { backgroundColor: theme.colors.error }, isDeleting && styles.deleteButtonDisabled]}
+              style={[styles.button, styles.deleteButton, isDeleting && styles.deleteButtonDisabled]}
               onPress={onConfirm}
               disabled={isDeleting}
             >
               {isDeleting ? (
-                <ActivityIndicator color={theme.colors.card} />
+                <ActivityIndicator color="#fff" />
               ) : (
-                <Text style={[styles.deleteButtonText, { color: theme.colors.card }]}>Delete Account</Text>
+                <Text style={styles.deleteButtonText}>Delete Account</Text>
               )}
             </TouchableOpacity>
           </View>
@@ -92,6 +89,7 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   modal: {
+    backgroundColor: '#fff',
     borderRadius: 16,
     padding: 24,
     width: '100%',
@@ -109,27 +107,32 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: '700',
+    color: '#1f2937',
     textAlign: 'center',
     marginBottom: 16,
   },
   message: {
     fontSize: 15,
+    color: '#6b7280',
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: 16,
   },
   listContainer: {
+    backgroundColor: '#f9fafb',
     borderRadius: 8,
     padding: 16,
     marginBottom: 16,
   },
   listItem: {
     fontSize: 14,
+    color: '#4b5563',
     lineHeight: 24,
   },
   warning: {
     fontSize: 16,
     fontWeight: '600',
+    color: '#dc2626',
     textAlign: 'center',
     marginBottom: 24,
   },
@@ -144,9 +147,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  cancelButton: {
+    backgroundColor: '#f3f4f6',
+  },
   cancelButtonText: {
     fontSize: 16,
     fontWeight: '600',
+    color: '#374151',
+  },
+  deleteButton: {
+    backgroundColor: '#dc2626',
   },
   deleteButtonDisabled: {
     opacity: 0.6,
@@ -154,5 +164,6 @@ const styles = StyleSheet.create({
   deleteButtonText: {
     fontSize: 16,
     fontWeight: '600',
+    color: '#fff',
   },
 });

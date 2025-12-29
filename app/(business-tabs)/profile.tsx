@@ -10,15 +10,14 @@ import {
   Alert,
   Platform,
   Image,
-  Switch,
 } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
-import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '@/contexts/AuthContext';
-import { useTheme } from '@/contexts/ThemeContext';
+import { supabase } from '@/lib/supabase';
 import { useRouter } from 'expo-router';
-import { Building2, MapPin, Mail, Phone, LogOut, CheckCircle, Trophy, TrendingUp, DollarSign, Globe, Lock, Star, FileText, Moon, Sun, Camera } from 'lucide-react-native';
-import { localDb } from '@/lib/localDb';
+import { Building2, MapPin, Mail, Phone, LogOut, CheckCircle, Camera, Trophy, TrendingUp, DollarSign, Globe, Lock, Star, FileText } from 'lucide-react-native';
+import { geocodeCity } from '@/lib/geocoding';
+import { pickImage, updateProfilePicture } from '@/lib/uploadImage';
 
 interface Review {
   id: string;
@@ -55,8 +54,7 @@ interface BusinessStats {
 }
 
 export default function BusinessProfile() {
-  const { userProfile, session, signOut, loading: authLoading, refreshProfile, updateProfilePicture } = useAuth();
-  const { theme, themeMode, setThemeMode } = useTheme();
+  const { userProfile, session, signOut, loading: authLoading, refreshProfile } = useAuth();
   const router = useRouter();
   const [business, setBusiness] = useState<Business | null>(null);
   const [stats, setStats] = useState<BusinessStats | null>(null);
@@ -94,32 +92,35 @@ export default function BusinessProfile() {
 
   const loadBusiness = async (userId: string) => {
     try {
-      console.log('Profile: Loading mock business for user:', userId);
+      console.log('Profile: Querying businesses for owner_id:', userId);
+      const { data, error } = await supabase
+        .from('businesses')
+        .select('*')
+        .eq('owner_id', userId)
+        .maybeSingle();
 
-      const mockBusiness: Business = {
-        id: userId,
-        business_name: userProfile?.full_name || 'My Business',
-        city: 'Austin',
-        state: 'TX',
-        description: 'Professional welding services',
-        website: null,
-        is_subscribed: true,
-        subscription_expires_at: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
-        radius_miles: 25,
-        latitude: 30.2672,
-        longitude: -97.7431,
-      };
+      console.log('Profile: Query result:', { data, error });
 
-      setBusiness(mockBusiness);
-      setBusinessName(mockBusiness.business_name);
-      setCity(mockBusiness.city);
-      setState(mockBusiness.state);
-      setDescription(mockBusiness.description || '');
-      setWebsite(mockBusiness.website || '');
-      setRadiusMiles(mockBusiness.radius_miles || 25);
-      setEditing(false);
-      loadBusinessStats(mockBusiness.id);
-      loadReviews(userId);
+      if (error) {
+        console.error('Profile: Query error:', error);
+        setLoading(false);
+        return;
+      }
+
+      if (data) {
+        setBusiness(data);
+        setBusinessName(data.business_name);
+        setCity(data.city);
+        setState(data.state);
+        setDescription(data.description || '');
+        setWebsite(data.website || '');
+        setRadiusMiles(data.radius_miles || 25);
+        setEditing(false);
+        loadBusinessStats(data.id);
+        loadReviews(userId);
+      } else {
+        setEditing(true);
+      }
     } catch (err) {
       console.error('Error loading business:', err);
     } finally {
@@ -129,27 +130,23 @@ export default function BusinessProfile() {
 
   const loadReviews = async (userId: string) => {
     try {
-      const reviewsData = await localDb.getReviews({ reviewee_id: userId });
+      const { data, error } = await supabase
+        .from('reviews')
+        .select(`
+          id,
+          rating,
+          review_text,
+          created_at,
+          customer:profiles!reviews_customer_id_fkey(full_name),
+          jobs(title)
+        `)
+        .eq('business_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(10);
 
-      const normalizedReviews = await Promise.all(reviewsData.map(async (review) => {
-        const customer = await localDb.getProfile(review.reviewer_id);
-        const job = await localDb.getJob(review.job_id);
+      if (error) throw error;
 
-        return {
-          id: review.id,
-          rating: review.rating,
-          review_text: review.comment,
-          created_at: review.created_at,
-          customer: {
-            full_name: customer?.full_name || 'Unknown',
-          },
-          jobs: {
-            title: job?.title || 'Unknown Job',
-          },
-        };
-      }));
-
-      setReviews(normalizedReviews as any);
+      setReviews(data as any || []);
     } catch (err) {
       console.error('Error loading reviews:', err);
     }
@@ -157,16 +154,32 @@ export default function BusinessProfile() {
 
   const loadBusinessStats = async (businessId: string) => {
     try {
-      const applications = await localDb.getApplications({ business_id: businessId });
+      const { data: bids, error: bidsError } = await supabase
+        .from('bids')
+        .select('id, amount, job_id')
+        .eq('business_id', businessId);
 
-      const totalBids = applications.length;
+      if (bidsError) throw bidsError;
 
-      const bidAmounts = applications.map(app => Number(app.bid_amount));
+      const totalBids = bids?.length || 0;
+
+      const bidAmounts = bids?.map(b => Number(b.amount)) || [];
       const averageBidAmount = bidAmounts.length > 0
         ? bidAmounts.reduce((sum, amt) => sum + amt, 0) / bidAmounts.length
         : 0;
 
-      const jobsWon = applications.filter(app => app.status === 'accepted').length;
+      let jobsWon = 0;
+      if (bids && bids.length > 0) {
+        const bidIds = bids.map(b => b.id);
+        const { data: wonJobs, error: wonJobsError } = await supabase
+          .from('jobs')
+          .select('id, winning_bid_id')
+          .not('winning_bid_id', 'is', null)
+          .in('winning_bid_id', bidIds);
+
+        if (wonJobsError) throw wonJobsError;
+        jobsWon = wonJobs?.length || 0;
+      }
 
       const acceptanceRate = totalBids > 0 ? (jobsWon / totalBids) * 100 : 0;
 
@@ -189,19 +202,41 @@ export default function BusinessProfile() {
 
     setSaving(true);
     try {
+      const coords = await geocodeCity(city.trim().toLowerCase(), state.trim().toUpperCase());
+
       if (business) {
-        setBusiness({
-          ...business,
+        const { error } = await supabase
+          .from('businesses')
+          .update({
+            business_name: businessName,
+            city: city.trim().toLowerCase(),
+            state: state.trim().toUpperCase(),
+            description,
+            website: website.trim() || null,
+            radius_miles: radiusMiles,
+            latitude: coords?.latitude || null,
+            longitude: coords?.longitude || null,
+          })
+          .eq('id', business.id);
+
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from('businesses').insert({
+          owner_id: session!.user.id,
           business_name: businessName,
           city: city.trim().toLowerCase(),
           state: state.trim().toUpperCase(),
           description,
           website: website.trim() || null,
           radius_miles: radiusMiles,
+          latitude: coords?.latitude || null,
+          longitude: coords?.longitude || null,
         });
+
+        if (error) throw error;
       }
 
-      Alert.alert('Success', 'Business profile saved successfully (demo mode)');
+      Alert.alert('Success', 'Business profile saved successfully');
       if (session) {
         await loadBusiness(session.user.id);
       }
@@ -216,8 +251,12 @@ export default function BusinessProfile() {
     if (!business || !session) return;
 
     try {
-      Alert.alert('Not Available', 'Subscription is not available in demo mode');
-      return;
+      const { data: { session: authSession } } = await supabase.auth.getSession();
+
+      if (!authSession?.access_token) {
+        Alert.alert('Error', 'You must be logged in to subscribe');
+        return;
+      }
 
       const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
 
@@ -232,7 +271,7 @@ export default function BusinessProfile() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session?.access_token}`,
+          'Authorization': `Bearer ${authSession.access_token}`,
         },
         body: JSON.stringify({
           price_id: 'price_1SdFlq4ZBWOAXTA3OetSbVpL',
@@ -261,28 +300,6 @@ export default function BusinessProfile() {
     }
   };
 
-  const pickImage = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-
-    if (status !== 'granted') {
-      Alert.alert('Permission Denied', 'We need permission to access your photos');
-      return null;
-    }
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.8,
-    });
-
-    if (result.canceled) {
-      return null;
-    }
-
-    return result.assets[0];
-  };
-
   const handleUploadProfilePicture = async () => {
     if (!session?.user.id) return;
 
@@ -291,7 +308,8 @@ export default function BusinessProfile() {
       const image = await pickImage();
 
       if (image) {
-        await updateProfilePicture(image.uri);
+        await updateProfilePicture(session.user.id, image.uri);
+        await refreshProfile();
         Alert.alert('Success', 'Profile picture updated successfully');
       }
     } catch (error: any) {
@@ -320,7 +338,13 @@ export default function BusinessProfile() {
 
     setUpdatingPassword(true);
     try {
-      throw new Error('Password update is not available in demo mode');
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+
+      if (error) throw error;
+
+      Alert.alert('Success', 'Password updated successfully');
       setChangingPassword(false);
       setCurrentPassword('');
       setNewPassword('');
@@ -359,7 +383,7 @@ export default function BusinessProfile() {
     new Date(business.subscription_expires_at) > new Date();
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <ScrollView style={styles.container}>
       <View style={styles.header}>
         <View style={styles.avatarWrapper}>
           <View style={styles.avatarContainer}>
@@ -431,25 +455,25 @@ export default function BusinessProfile() {
       {business && !editing && userProfile && (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Customer Reviews</Text>
-          {(userProfile.rating || 0) > 0 ? (
+          {userProfile.review_count > 0 ? (
             <>
               <View style={styles.ratingSummary}>
                 <View style={styles.ratingScore}>
                   <Text style={styles.ratingNumber}>
-                    {userProfile.rating?.toFixed(1) || '0.0'}
+                    {userProfile.average_rating?.toFixed(1) || '0.0'}
                   </Text>
                   <View style={styles.starsDisplay}>
                     {[1, 2, 3, 4, 5].map((star) => (
                       <Star
                         key={star}
                         size={20}
-                        color={star <= (userProfile.rating || 0) ? '#FFD700' : '#CCC'}
-                        fill={star <= (userProfile.rating || 0) ? '#FFD700' : 'none'}
+                        color={star <= (userProfile.average_rating || 0) ? '#FFD700' : '#CCC'}
+                        fill={star <= (userProfile.average_rating || 0) ? '#FFD700' : 'none'}
                       />
                     ))}
                   </View>
                   <Text style={styles.reviewCount}>
-                    Based on {userProfile.completed_jobs || 0} {(userProfile.completed_jobs || 0) === 1 ? 'review' : 'reviews'}
+                    Based on {userProfile.review_count} {userProfile.review_count === 1 ? 'review' : 'reviews'}
                   </Text>
                 </View>
               </View>
@@ -811,33 +835,6 @@ export default function BusinessProfile() {
             </View>
           </View>
         )}
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Appearance</Text>
-        <View style={[styles.themeCard, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
-          <View style={styles.themeRow}>
-            <View style={styles.themeIconContainer}>
-              {themeMode === 'dark' ? (
-                <Moon size={20} color={theme.colors.primary} />
-              ) : (
-                <Sun size={20} color={theme.colors.primary} />
-              )}
-            </View>
-            <View style={styles.themeContent}>
-              <Text style={[styles.themeLabel, { color: theme.colors.text }]}>Dark Mode</Text>
-              <Text style={[styles.themeDescription, { color: theme.colors.textSecondary }]}>
-                {themeMode === 'dark' ? 'Dark theme enabled' : 'Light theme enabled'}
-              </Text>
-            </View>
-            <Switch
-              value={themeMode === 'dark'}
-              onValueChange={(value) => setThemeMode(value ? 'dark' : 'light')}
-              trackColor={{ false: '#d1d5db', true: theme.colors.primary }}
-              thumbColor="#fff"
-            />
-          </View>
-        </View>
       </View>
 
       <View style={styles.section}>
@@ -1272,34 +1269,5 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#007AFF',
-  },
-  themeCard: {
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-  },
-  themeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  themeIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#f0f0f0',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  themeContent: {
-    flex: 1,
-    gap: 4,
-  },
-  themeLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  themeDescription: {
-    fontSize: 13,
   },
 });

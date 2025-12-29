@@ -1,8 +1,18 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import * as SplashScreen from 'expo-splash-screen';
-import * as SecureStore from 'expo-secure-store';
+import { createContext, useContext, useEffect, useState } from 'react';
+import { Session } from '@supabase/supabase-js';
+import { supabase } from '@/lib/supabase';
+import { registerForPushNotificationsAsync, savePushToken } from '@/lib/notifications';
 import { router } from 'expo-router';
-import { Platform } from 'react-native';
+
+interface AuthContextType {
+  session: Session | null;
+  loading: boolean;
+  userProfile: UserProfile | null;
+  signUp: (email: string, password: string, fullName: string, userType: 'customer' | 'business', phone?: string) => Promise<void>;
+  signIn: (email: string, password: string) => Promise<void>;
+  signOut: () => Promise<void>;
+  refreshProfile: () => Promise<void>;
+}
 
 interface UserProfile {
   id: string;
@@ -11,157 +21,204 @@ interface UserProfile {
   user_type: 'customer' | 'business';
   last_job_posted_at: string | null;
   profile_picture_url: string | null;
-  rating?: number;
-  completed_jobs?: number;
-}
-
-interface AuthContextType {
-  session: any | null;
-  loading: boolean;
-  userProfile: UserProfile | null;
-  signUp: (email: string, password: string, fullName: string, userType: 'customer' | 'business', phone?: string) => Promise<void>;
-  signIn: (email: string, password: string) => Promise<void>;
-  signOut: () => Promise<void>;
-  refreshProfile: () => Promise<void>;
-  updateProfilePicture: (imageUri: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [session, setSession] = useState<any | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {
-    async function initAuth() {
+    let mounted = true;
+    let timeoutId: NodeJS.Timeout;
+
+    const initAuth = async () => {
       try {
-        if (Platform.OS === 'web') {
-          const savedUser = localStorage.getItem('weldconnect_user');
-          if (savedUser) {
-            const profile = JSON.parse(savedUser);
-            setSession({ user: { id: profile.id } });
-            setUserProfile(profile);
-          }
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!mounted) return;
+
+        setSession(session);
+        if (session) {
+          await loadUserProfile(session.user.id);
         } else {
-          const savedUser = await SecureStore.getItemAsync('weldconnect_user');
-          if (savedUser) {
-            const profile = JSON.parse(savedUser);
-            setSession({ user: { id: profile.id } });
-            setUserProfile(profile);
-          }
+          setLoading(false);
         }
-      } catch (e) {
-        console.error('Failed to load mock session', e);
-      } finally {
-        setLoading(false);
-        await SplashScreen.hideAsync().catch(() => {});
+        setInitialized(true);
+      } catch (error) {
+        console.error('Error initializing auth:', error);
+        if (mounted) {
+          setLoading(false);
+          setInitialized(true);
+        }
       }
-    }
+    };
+
+    timeoutId = setTimeout(() => {
+      if (mounted && loading && !initialized) {
+        console.error('Auth initialization timeout - forcing loading to false');
+        setLoading(false);
+        setInitialized(true);
+      }
+    }, 10000);
+
     initAuth();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!mounted || !initialized) return;
+
+      console.log('Auth state changed:', _event, 'session:', !!session);
+
+      if (_event === 'SIGNED_OUT' || _event === 'USER_DELETED') {
+        setSession(null);
+        setUserProfile(null);
+        setLoading(false);
+        return;
+      }
+
+      if (_event === 'SIGNED_IN' || _event === 'TOKEN_REFRESHED') {
+        setSession(session);
+        (async () => {
+          await loadUserProfile(session.user.id);
+        })();
+      }
+    });
+
+    return () => {
+      mounted = false;
+      clearTimeout(timeoutId);
+      subscription.unsubscribe();
+    };
   }, []);
 
-  const signIn = async (email: string, password: string) => {
-    const mockProfile: UserProfile = {
-      id: 'mock-123',
-      full_name: 'Test Welder',
-      phone: '555-0199',
-      user_type: 'business',
-      last_job_posted_at: null,
-      profile_picture_url: null,
-    };
+  const loadUserProfile = async (userId: string) => {
+    try {
+      console.log('Loading profile for user:', userId);
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle();
 
-    setSession({ user: { id: mockProfile.id } });
-    setUserProfile(mockProfile);
+      console.log('Profile data:', data);
+      console.log('Profile error:', error);
 
-    if (Platform.OS === 'web') {
-      localStorage.setItem('weldconnect_user', JSON.stringify(mockProfile));
-    } else {
-      await SecureStore.setItemAsync('weldconnect_user', JSON.stringify(mockProfile));
+      if (error) {
+        console.error('Profile query error:', error);
+        throw error;
+      }
+
+      if (!data) {
+        console.warn('No profile found for user:', userId);
+      }
+
+      setUserProfile(data);
+
+      try {
+        const pushToken = await registerForPushNotificationsAsync();
+        if (pushToken) {
+          await savePushToken(userId, pushToken);
+        }
+      } catch (notifError) {
+        console.error('Error registering push notifications:', notifError);
+      }
+    } catch (error) {
+      console.error('Error loading profile:', error);
+    } finally {
+      console.log('Setting loading to false');
+      setLoading(false);
     }
-
-    router.replace('/(business-tabs)');
   };
 
-  const signUp = async (email: string, password: string, fullName: string, userType: 'customer' | 'business', phone?: string) => {
-    const mockProfile: UserProfile = {
-      id: Math.random().toString(36).substr(2, 9),
-      full_name: fullName,
-      phone: phone || null,
-      user_type: userType,
-      last_job_posted_at: null,
-      profile_picture_url: null,
-    };
+  const refreshProfile = async () => {
+    if (session?.user.id) {
+      await loadUserProfile(session.user.id);
+    }
+  };
 
-    setSession({ user: { id: mockProfile.id } });
-    setUserProfile(mockProfile);
+  const signUp = async (
+    email: string,
+    password: string,
+    fullName: string,
+    userType: 'customer' | 'business',
+    phone?: string
+  ) => {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+    });
 
-    if (Platform.OS === 'web') {
-      localStorage.setItem('weldconnect_user', JSON.stringify(mockProfile));
-    } else {
-      await SecureStore.setItemAsync('weldconnect_user', JSON.stringify(mockProfile));
+    if (error) throw error;
+
+    if (data.user) {
+      const { error: profileError } = await supabase.from('profiles').insert({
+        id: data.user.id,
+        full_name: fullName,
+        phone: phone || null,
+        user_type: userType,
+      });
+
+      if (profileError) throw profileError;
+
+      await loadUserProfile(data.user.id);
+    }
+  };
+
+  const signIn = async (email: string, password: string) => {
+    console.log('AuthContext: signIn called');
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) {
+      console.error('AuthContext: signIn error:', error);
+      throw error;
     }
 
-    if (userType === 'business') {
-      router.replace('/(business-tabs)');
-    } else {
-      router.replace('/(customer-tabs)');
+    console.log('AuthContext: signIn successful, user:', data.user?.id);
+
+    if (data.session) {
+      console.log('AuthContext: Setting session from signIn');
+      setSession(data.session);
+      await loadUserProfile(data.user.id);
     }
   };
 
   const signOut = async () => {
-    setSession(null);
-    setUserProfile(null);
-
-    if (Platform.OS === 'web') {
-      localStorage.removeItem('weldconnect_user');
-    } else {
-      await SecureStore.deleteItemAsync('weldconnect_user');
-    }
-
-    router.replace('/auth/login');
-  };
-
-  const refreshProfile = async () => {
-    if (!userProfile) return;
-
+    console.log('SignOut: Starting sign out process');
     try {
-      if (Platform.OS === 'web') {
-        const savedUser = localStorage.getItem('weldconnect_user');
-        if (savedUser) {
-          const profile = JSON.parse(savedUser);
-          setUserProfile(profile);
+      console.log('SignOut: Calling supabase.auth.signOut()');
+      const { error } = await supabase.auth.signOut();
+
+      if (error) {
+        console.error('SignOut: Supabase signOut returned error:', error);
+        if (error.message !== 'Auth session missing!') {
+          throw error;
         }
-      } else {
-        const savedUser = await SecureStore.getItemAsync('weldconnect_user');
-        if (savedUser) {
-          const profile = JSON.parse(savedUser);
-          setUserProfile(profile);
-        }
+        console.log('SignOut: Auth session missing, but thats ok');
       }
-    } catch (error) {
-      console.error('Failed to refresh profile', error);
-    }
-  };
 
-  const updateProfilePicture = async (imageUri: string) => {
-    if (!userProfile) return;
+      console.log('SignOut: Clearing local state');
+      setSession(null);
+      setUserProfile(null);
 
-    const updatedProfile = {
-      ...userProfile,
-      profile_picture_url: imageUri,
-    };
+      console.log('SignOut: Redirecting to login');
+      router.replace('/auth/login');
 
-    setUserProfile(updatedProfile);
-
-    try {
-      if (Platform.OS === 'web') {
-        localStorage.setItem('weldconnect_user', JSON.stringify(updatedProfile));
-      } else {
-        await SecureStore.setItemAsync('weldconnect_user', JSON.stringify(updatedProfile));
+      console.log('SignOut: Successfully completed');
+    } catch (err: any) {
+      console.error('SignOut: Exception caught:', err);
+      if (err.message === 'Auth session missing!' || err.name === 'AuthSessionMissingError') {
+        console.log('SignOut: Session already cleared');
+        setSession(null);
+        setUserProfile(null);
+        router.replace('/auth/login');
+        return;
       }
-    } catch (error) {
-      console.error('Failed to update profile picture', error);
+      throw err;
     }
   };
 
@@ -175,7 +232,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         signIn,
         signOut,
         refreshProfile,
-        updateProfilePicture,
       }}
     >
       {children}

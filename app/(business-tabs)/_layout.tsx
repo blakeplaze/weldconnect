@@ -1,17 +1,15 @@
 import { Tabs, Redirect } from 'expo-router';
 import { Briefcase, DollarSign, List, User, MessageCircle, HelpCircle } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
-import { useTheme } from '@/contexts/ThemeContext';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 
 export default function BusinessTabLayout() {
   const { session, loading } = useAuth();
-  const { theme } = useTheme();
 
   if (loading) {
     return (
-      <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
+      <View style={styles.container}>
+        <ActivityIndicator size="large" color="#007AFF" />
       </View>
     );
   }
@@ -24,15 +22,8 @@ export default function BusinessTabLayout() {
     <Tabs
       screenOptions={{
         headerShown: true,
-        headerStyle: {
-          backgroundColor: theme.colors.surface,
-        },
-        headerTintColor: theme.colors.text,
-        tabBarStyle: {
-          backgroundColor: theme.colors.tabBarBackground,
-        },
-        tabBarActiveTintColor: theme.colors.tabBarActiveTint,
-        tabBarInactiveTintColor: theme.colors.tabBarInactiveTint,
+        tabBarActiveTintColor: '#007AFF',
+        tabBarInactiveTintColor: '#999',
       }}
     >
       <Tabs.Screen
@@ -90,5 +81,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#fff',
   },
 });
