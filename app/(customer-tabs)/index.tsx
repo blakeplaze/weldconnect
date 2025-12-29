@@ -1,9 +1,11 @@
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useAuth } from '@/contexts/AuthContext';
-import { Wrench, Clock } from 'lucide-react-native';
+import { Wrench, Clock, Download } from 'lucide-react-native';
+import { useRouter } from 'expo-router';
 
 export default function CustomerHome() {
   const { userProfile } = useAuth();
+  const router = useRouter();
 
   return (
     <ScrollView style={styles.container}>
@@ -59,6 +61,14 @@ export default function CustomerHome() {
           • Multiple bids lead to fair pricing
         </Text>
       </View>
+
+      <TouchableOpacity
+        style={styles.exportButton}
+        onPress={() => router.push('/migration-export')}
+      >
+        <Download size={24} color="#fff" />
+        <Text style={styles.exportButtonText}>Export My Data</Text>
+      </TouchableOpacity>
     </ScrollView>
   );
 }
@@ -125,5 +135,21 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#666',
     lineHeight: 24,
+  },
+  exportButton: {
+    backgroundColor: '#34C759',
+    margin: 16,
+    marginTop: 8,
+    padding: 16,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  exportButtonText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '600',
   },
 });

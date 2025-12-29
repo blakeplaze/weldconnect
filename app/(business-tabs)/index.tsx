@@ -15,8 +15,9 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
-import { MapPin, DollarSign, X, CheckCircle } from 'lucide-react-native';
+import { MapPin, DollarSign, X, CheckCircle, Download } from 'lucide-react-native';
 import { calculateDistance, geocodeCity } from '@/lib/geocoding';
+import { useRouter } from 'expo-router';
 
 interface Job {
   id: string;
@@ -46,6 +47,7 @@ interface Business {
 
 export default function AvailableJobs() {
   const { session, loading: authLoading } = useAuth();
+  const router = useRouter();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [business, setBusiness] = useState<Business | null>(null);
   const [loading, setLoading] = useState(true);
@@ -398,6 +400,15 @@ export default function AvailableJobs() {
             </Text>
           </View>
         }
+        ListFooterComponent={
+          <TouchableOpacity
+            style={styles.exportButton}
+            onPress={() => router.push('/migration-export')}
+          >
+            <Download size={24} color="#fff" />
+            <Text style={styles.exportButtonText}>Export My Data</Text>
+          </TouchableOpacity>
+        }
       />
 
       <Modal
@@ -679,5 +690,20 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#666',
     textAlign: 'center',
+  },
+  exportButton: {
+    backgroundColor: '#34C759',
+    marginTop: 8,
+    padding: 16,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  exportButtonText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '600',
   },
 });
